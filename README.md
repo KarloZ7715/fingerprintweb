@@ -2,7 +2,7 @@
 
 Sistema de registro de asistencias con sensor de huellas dactilares.
 
-## Inicio Rápido
+## 🚀 Inicio Rápido
 
 ### Prerrequisitos
 - Docker Desktop
@@ -10,8 +10,8 @@ Sistema de registro de asistencias con sensor de huellas dactilares.
 
 ### Instalación
 ```bash
-git clone <repo-url>
-cd FingerPrintWeb/infra
+git clone https://github.com/KarloZ7715/fingerprintweb.git
+cd fingerprintweb/infra
 docker compose up --build
 ```
 
@@ -25,7 +25,7 @@ docker compose up --build
 - Contraseña: `fpwpass`
 - Base de datos: `fingerprintweb`
 
-## Comandos Útiles
+## 🛠️ Comandos Útiles
 
 ```bash
 # Iniciar servicios
@@ -41,7 +41,7 @@ docker compose down
 docker compose up --build
 ```
 
-## Stack Tecnológico
+## 🏗️ Stack Tecnológico
 - **Frontend:** React 19 + TypeScript + Vite + TailwindCSS
 - **Backend:** Node.js 22 + TypeScript + Fastify
 - **Base de datos:** MariaDB 11.4
