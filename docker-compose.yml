@@ -1,0 +1,36 @@
+version: "3.8"
+
+services:
+  # Servicio de la aplicación Laravel
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: fingerprintweb-app
+    container_name: fingerprintweb-app
+    restart: unless-stopped
+    working_dir: /var/www
+    volumes:
+      - ./:/var/www
+      - ./docker/php/php.ini:/usr/local/etc/php/conf.d/custom.ini
+    networks:
+      - fingerprintweb-network
+
+  # Servicio de Nginx
+  nginx:
+    image: nginx:alpine
+    container_name: fingerprintweb-nginx
+    restart: unless-stopped
+    ports:
+      - "8000:80"
+    volumes:
+      - ./:/var/www
+      - ./docker/nginx:/etc/nginx/conf.d
+    networks:
+      - fingerprintweb-network
+    depends_on:
+      - app
+
+networks:
+  fingerprintweb-network:
+    driver: bridge

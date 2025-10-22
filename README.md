@@ -1,89 +1,369 @@
-# FingerPrintWeb
+# Fingerprintweb - Gestión Automática de Asistencias y Detección de Movimiento con Alarma.
 
-Sistema de registro de asistencias con sensor de huellas dactilares.
+Proyecto universitario desarrollado con Laravel 12 y Filament 4 para la gestión de asistencia mediante huellas dactilares y detección de movimiento.
 
-## 🚀 Inicio Rápido
+## Información del Proyecto
 
-### Prerrequisitos
-- Docker Desktop
-- Git
+**Tecnologías utilizadas:**
 
-### Instalación
-```bash
-git clone https://github.com/KarloZ7715/fingerprintweb.git
-cd fingerprintweb/infra
-docker compose up --build
-```
+-   Laravel Framework 12.35.0
+-   Filament Admin Panel 4.1.10
+-   PHP 8.2
+-   MySQL (Base de datos remota)
+-   Docker & Docker Compose
 
-### URLs de Desarrollo
-- **Frontend:** http://localhost:5173
-- **Backend API:** http://localhost:4000/health
-- **MariaDB:** localhost:3306
+---
 
-### Credenciales DB
-- Usuario: `fpw`
-- Contraseña: `fpwpass`
-- Base de datos: `fingerprintweb`
+## Requisitos del Sistema
 
-## 🛠️ Comandos Útiles
+Antes de comenzar, asegúrate de tener instalado:
 
-```bash
-# Iniciar servicios
-docker compose up -d
+1. **Git** - Control de versiones
+2. **Docker Desktop** - Para Windows/Mac, o Docker Engine + Docker Compose para Linux
+3. **Editor de código** - VS Code, PHPStorm, u otro de tu preferencia
 
-# Ver logs
-docker compose logs -f
+---
 
-# Parar servicios
-docker compose down
+## Instalación y Configuración
 
-# Rebuild tras cambios en package.json
-docker compose up --build
-```
+### 1. Clonar el Repositorio
 
-## 🏗️ Stack Tecnológico
-- **Frontend:** React 19 + TypeScript + Vite + TailwindCSS
-- **Backend:** Node.js 22 + TypeScript + Fastify
-- **Base de datos:** MariaDB 11.4
-- **Containerización:** Docker + Docker Compose
-
-## 👥 Colaboración en Equipo
-
-### Para trabajar en el proyecto:
-
-1. **Clonar el repositorio:**
 ```bash
 git clone https://github.com/KarloZ7715/fingerprintweb.git
 cd fingerprintweb
 ```
 
-2. **Crear una rama para tu feature:**
+### 2. Configurar Variables de Entorno
+
+Copia el archivo de ejemplo:
+
 ```bash
-git checkout -b feature/nombre-de-tu-feature
+# Windows (PowerShell)
+Copy-Item .env.example .env
+
+# Linux/Mac
+cp .env.example .env
 ```
 
-3. **Desarrollar con Docker:**
-```bash
-cd infra
-docker compose up --build
+**Configurar credenciales de la base de datos:**
+
+El archivo `.env.example` no contiene las credenciales reales por seguridad. Debes configurar manualmente las siguientes variables en tu archivo `.env`:
+
+```env
+DB_CONNECTION=mysql
+DB_HOST=tu-host-de-base-de-datos
+DB_PORT=3306
+DB_DATABASE=nombre-de-la-base-de-datos
+DB_USERNAME=tu-usuario
+DB_PASSWORD=tu-contraseña
 ```
 
-4. **Hacer commits pequeños y descriptivos:**
+**Obtener credenciales:**
+
+-   Las credenciales de la base de datos se comparten por los canales privados del equipo (WhatsApp o Discord)
+-   **NUNCA** compartas las credenciales públicamente o las subas al repositorio
+
+### 3. Iniciar Docker
+
+Construye e inicia los contenedores de Docker:
+
 ```bash
+docker-compose build
+docker-compose up -d
+```
+
+### 4. Instalar Dependencias
+
+Instala las dependencias de PHP con Composer:
+
+```bash
+docker-compose exec app composer install
+```
+
+### 5. Generar Application Key
+
+Genera la clave única de la aplicación:
+
+```bash
+docker-compose exec app php artisan key:generate
+```
+
+### 6. Crear Enlace de Storage
+
+Crea el enlace simbólico para el almacenamiento público:
+
+```bash
+docker-compose exec app php artisan storage:link
+```
+
+### 7. Ejecutar Migraciones (Opcional)
+
+Si necesitas ejecutar migraciones en la base de datos:
+
+```bash
+docker-compose exec app php artisan migrate
+```
+
+### 8. Crear Usuario Administrador
+
+Crea tu usuario para acceder al panel de administración:
+
+```bash
+docker-compose exec app php artisan make:filament-user
+```
+
+Proporciona la información solicitada:
+
+-   Nombre
+-   Email
+-   Contraseña (mínimo 8 caracteres)
+
+---
+
+## Acceso a la Aplicación
+
+Una vez completada la instalación, la aplicación estará disponible en:
+
+-   **Aplicación principal:** http://localhost:8000
+-   **Panel de administración:** http://localhost:8000/admin
+-   **Login administrativo:** http://localhost:8000/admin/login
+
+---
+
+## Comandos Útiles
+
+### Gestión de Docker
+
+```bash
+# Iniciar contenedores
+docker-compose up -d
+
+# Detener contenedores
+docker-compose down
+
+# Ver logs en tiempo real
+docker-compose logs -f app
+
+# Reiniciar contenedores
+docker-compose restart
+
+# Acceder al contenedor de la aplicación
+docker-compose exec app bash
+```
+
+### Comandos de Laravel/Artisan
+
+```bash
+# Ejecutar migraciones
+docker-compose exec app php artisan migrate
+
+# Limpiar caché
+docker-compose exec app php artisan cache:clear
+docker-compose exec app php artisan config:clear
+docker-compose exec app php artisan route:clear
+docker-compose exec app php artisan view:clear
+
+# Ver información del sistema
+docker-compose exec app php artisan about
+
+# Ver rutas de la aplicación
+docker-compose exec app php artisan route:list
+
+# Ver información de la base de datos
+docker-compose exec app php artisan db:show
+```
+
+### Comandos de Composer
+
+```bash
+# Instalar dependencias
+docker-compose exec app composer install
+
+# Actualizar dependencias
+docker-compose exec app composer update
+
+# Instalar un paquete específico
+docker-compose exec app composer require vendor/package
+```
+
+### Comandos de Filament
+
+```bash
+# Crear un recurso CRUD
+docker-compose exec app php artisan make:filament-resource NombreModelo
+
+# Crear una página personalizada
+docker-compose exec app php artisan make:filament-page NombrePagina
+
+# Crear un widget
+docker-compose exec app php artisan make:filament-widget NombreWidget
+
+# Crear usuario administrador
+docker-compose exec app php artisan make:filament-user
+```
+
+---
+
+## Estructura del Proyecto
+
+```
+fingerprintweb/
+├── app/
+│   ├── Filament/           # Recursos, páginas y widgets de Filament
+│   ├── Http/               # Controladores y middleware
+│   ├── Models/             # Modelos de la base de datos
+│   └── Providers/          # Service providers
+├── config/                 # Archivos de configuración
+├── database/
+│   ├── migrations/         # Migraciones de base de datos
+│   └── seeders/           # Seeders de datos
+├── docker/                 # Configuración de Docker
+│   ├── nginx/             # Configuración de Nginx
+│   └── php/               # Configuración de PHP
+├── public/                 # Archivos públicos accesibles
+├── resources/
+│   └── views/             # Plantillas Blade
+├── routes/                 # Definición de rutas
+├── storage/               # Archivos generados y logs
+├── tests/                 # Tests automatizados
+├── .env                   # Variables de entorno (NO COMMITEAR)
+├── docker-compose.yml     # Configuración de servicios Docker
+└── Dockerfile             # Imagen Docker del proyecto
+```
+
+---
+
+## Trabajo en Equipo
+
+### Estructura de Branches
+
+El proyecto utiliza la siguiente estructura de ramas:
+
+-   **`main`** - Rama principal con código estable y en producción
+-   **`develop`** - Rama de desarrollo donde se integran las nuevas funcionalidades
+-   **`feature/nombre-funcionalidad`** - Ramas para desarrollar funcionalidades específicas
+
+### Obtener Cambios del Repositorio
+
+Antes de comenzar a trabajar, actualiza tu copia local:
+
+```bash
+# Actualizar rama develop
+git checkout develop
+git pull origin develop
+
+# Actualizar dependencias si hubo cambios
+docker-compose exec app composer install
+```
+
+### Crear una Nueva Funcionalidad
+
+Sigue este flujo de trabajo para desarrollar nuevas funcionalidades:
+
+```bash
+# 1. Asegúrate de estar en develop actualizado
+git checkout develop
+git pull origin develop
+
+# 2. Crear rama de funcionalidad desde develop
+git checkout -b feature/nombre-funcionalidad
+
+# 3. Realizar tus cambios y commitear frecuentemente
 git add .
-git commit -m "feat: descripción clara del cambio"
+git commit -m "Descripción clara de los cambios realizados"
+
+# 4. Subir la rama al repositorio
+git push origin feature/nombre-funcionalidad
+
+# 5. Crear Pull Request en GitHub hacia develop
+# (Desde la interfaz de GitHub)
 ```
 
-5. **Subir tu rama:**
+### Integrar Cambios a Develop
+
+Una vez que tu funcionalidad esté completa:
+
+1. Crea un **Pull Request** en GitHub desde `feature/nombre-funcionalidad` hacia `develop`
+2. Espera la revisión de código del equipo
+3. Realiza los cambios solicitados si los hay
+4. Una vez aprobado, se fusionará a `develop`
+5. Elimina tu rama de feature después de fusionar
+
 ```bash
-git push origin feature/nombre-de-tu-feature
+# Después de fusionar, actualiza tu develop local
+git checkout develop
+git pull origin develop
+
+# Elimina la rama local de feature
+git branch -d feature/nombre-funcionalidad
 ```
 
-6. **Crear Pull Request en GitHub**
+### Pasar Cambios a Producción (develop → main)
 
-### 📋 Reglas de Colaboración
-- Siempre trabajar en ramas separadas
-- Hacer commits descriptivos
-- Probar localmente antes de push
-- Revisar Pull Requests de compañeros
-- Mantener main branch estable
+Cuando develop tenga funcionalidades estables listas para producción:
+
+1. Crea un Pull Request desde `develop` hacia `main`
+2. Revisión final del equipo
+3. Una vez aprobado, se fusiona a `main`
+4. Se crea un tag de versión (opcional pero recomendado)
+
+### Buenas Prácticas
+
+-   **NO commitear** el archivo `.env` (contiene credenciales sensibles)
+-   **NO commitear** las carpetas `vendor/` y `node_modules/`
+-   Usar **mensajes de commit descriptivos** en un solo idioma
+-   **Probar los cambios** antes de hacer push
+-   **Documentar** funcionalidades nuevas o cambios importantes
+-   **Usar Docker** para mantener consistencia en el entorno de desarrollo (Brayan formatea ya tu PC :D)
+
+---
+
+## Solución de Problemas
+
+### Error de permisos en storage
+
+```bash
+docker-compose exec app chmod -R 775 storage bootstrap/cache
+```
+
+### Error de conexión a la base de datos
+
+Verifica que:
+
+1. Tengas conexión a internet (la BD es remota)
+2. Las credenciales en `.env` sean correctas
+3. Ejecuta: `docker-compose exec app php artisan db:show`
+
+### Los contenedores no inician
+
+```bash
+# Verificar estado
+docker-compose ps
+
+# Ver logs de errores
+docker-compose logs
+
+# Reconstruir contenedores
+docker-compose down
+docker-compose build --no-cache
+docker-compose up -d
+```
+
+### Error "Class not found"
+
+```bash
+docker-compose exec app composer dump-autoload
+docker-compose exec app php artisan optimize:clear
+```
+
+---
+
+## Documentación Adicional
+
+Para más información detallada, consulta los siguientes archivos:
+
+-   **SETUP.md** - Guía completa de configuración del proyecto
+-   **DOCKER.md** - Documentación específica sobre Docker
+-   **COMANDOS.md** - Referencia rápida de comandos útiles
+
+---
