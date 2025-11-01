@@ -80,15 +80,7 @@ Instala las dependencias de PHP con Composer:
 docker-compose exec app composer install
 ```
 
-### 5. Generar Application Key
-
-Genera la clave única de la aplicación:
-
-```bash
-docker-compose exec app php artisan key:generate
-```
-
-### 6. Crear Enlace de Storage
+### 5. Crear Enlace de Storage
 
 Crea el enlace simbólico para el almacenamiento público:
 
@@ -96,7 +88,7 @@ Crea el enlace simbólico para el almacenamiento público:
 docker-compose exec app php artisan storage:link
 ```
 
-### 7. Ejecutar Migraciones (Opcional)
+### 6. Ejecutar Migraciones (Opcional)
 
 Si necesitas ejecutar migraciones en la base de datos:
 
@@ -104,7 +96,7 @@ Si necesitas ejecutar migraciones en la base de datos:
 docker-compose exec app php artisan migrate
 ```
 
-### 8. Crear Usuario Administrador
+### 7. Crear Usuario Administrador
 
 Crea tu usuario para acceder al panel de administración:
 
