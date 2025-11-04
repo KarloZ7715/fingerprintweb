@@ -31,6 +31,7 @@ Antes de comenzar, asegúrate de tener instalado:
 ```bash
 git clone https://github.com/KarloZ7715/fingerprintweb.git
 cd fingerprintweb
+git checkout development
 ```
 
 ### 2. Configurar Variables de Entorno
@@ -232,17 +233,17 @@ fingerprintweb/
 El proyecto utiliza la siguiente estructura de ramas:
 
 -   **`main`** - Rama principal con código estable y en producción
--   **`develop`** - Rama de desarrollo donde se integran las nuevas funcionalidades
--   **`feature/nombre-funcionalidad`** - Ramas para desarrollar funcionalidades específicas
+-   **`development`** - Rama de desarrollo donde se integran las nuevas funcionalidades
+-   **`feature/nombre-funcionalidad`** - Ramas para desarrollar funcionalidades específicas desde development (recuerda cambiar 'nombre-funcionalidad' por el feature a subir)
 
 ### Obtener Cambios del Repositorio
 
 Antes de comenzar a trabajar, actualiza tu copia local:
 
 ```bash
-# Actualizar rama develop
-git checkout develop
-git pull origin develop
+# Actualizar rama development
+git checkout development
+git pull origin development
 
 # Actualizar dependencias si hubo cambios
 docker-compose exec app composer install
@@ -250,51 +251,82 @@ docker-compose exec app composer install
 
 ### Crear una Nueva Funcionalidad
 
-Sigue este flujo de trabajo para desarrollar nuevas funcionalidades:
+#### Opción A: Si NO tienes `development` en tu repositorio local
+
+Sigue estos pasos para traer `development` y crear tu rama de feature:
 
 ```bash
-# 1. Asegúrate de estar en develop actualizado
-git checkout develop
-git pull origin develop
+# 1. Ver todas las ramas remotas disponibles
+git branch -r
 
-# 2. Crear rama de funcionalidad desde develop
-git checkout -b feature/nombre-funcionalidad
+# 2. Crear y cambiar a la rama development desde origin/development
+git checkout -b development origin/development
 
-# 3. Realizar tus cambios y commitear frecuentemente
-git add .
-git commit -m "Descripción clara de los cambios realizados"
+# 3. Verificar que estás en development
+git branch
 
-# 4. Subir la rama al repositorio
-git push origin feature/nombre-funcionalidad
+# 4. Crear la rama de feature desde development
+git checkout -b development/feature/nombre-funcionalidad
 
-# 5. Crear Pull Request en GitHub hacia develop
+# 5. Realizar tus cambios y commitear frecuentemente
+git add archivo.php
+git commit -m "feat: descripción clara de los cambios realizados"
+
+# 6. Subir la rama de feature al repositorio
+git push origin development/feature/nombre-funcionalidad
+
+# 7. Crear Pull Request en GitHub desde development/feature/nombre-funcionalidad hacia development
 # (Desde la interfaz de GitHub)
 ```
 
-### Integrar Cambios a Develop
+#### Opción B: Si YA tienes `development` en tu repositorio local
+
+Sigue estos pasos para actualizar y crear tu rama de feature:
+
+```bash
+# 1. Asegúrate de estar en development y actualízalo
+git checkout development
+git pull origin development
+
+# 2. Crear la rama de feature desde development
+git checkout -b development/feature/nombre-funcionalidad
+
+# 3. Realizar tus cambios y commitear frecuentemente
+git add archivo.php
+git commit -m "feat: descripción clara de los cambios realizados"
+
+# 4. Subir la rama de feature al repositorio
+git push origin development/feature/nombre-funcionalidad
+
+# 5. Crear Pull Request en GitHub desde development/feature/nombre-funcionalidad hacia development
+# (Desde la interfaz de GitHub)
+```
+
+### Integrar Cambios a Development
 
 Una vez que tu funcionalidad esté completa:
 
-1. Crea un **Pull Request** en GitHub desde `feature/nombre-funcionalidad` hacia `develop`
-2. Espera la revisión de código del equipo
-3. Realiza los cambios solicitados si los hay
-4. Una vez aprobado, se fusionará a `develop`
-5. Elimina tu rama de feature después de fusionar
+1. Crea un **Pull Request** en GitHub desde `development/feature/nombre-funcionalidad` hacia `development`
+2. Asigna a los reviewers que deben revisar el código
+3. Espera la revisión de código del equipo
+4. Realiza los cambios solicitados si los hay
+5. Una vez aprobado, se fusionará a `development`
+6. Elimina tu rama de feature después de fusionar
 
 ```bash
 # Después de fusionar, actualiza tu develop local
-git checkout develop
-git pull origin develop
+git checkout development
+git pull origin development
 
-# Elimina la rama local de feature
-git branch -d feature/nombre-funcionalidad
+# Elimina la rama local de feature (opcional)
+git branch -d development/feature/nombre-funcionalidad
 ```
 
-### Pasar Cambios a Producción (develop → main)
+### Pasar Cambios a Producción (development → main)
 
-Cuando develop tenga funcionalidades estables listas para producción:
+Cuando development tenga funcionalidades estables listas para producción:
 
-1. Crea un Pull Request desde `develop` hacia `main`
+1. Crea un Pull Request desde `development` hacia `main`
 2. Revisión final del equipo
 3. Una vez aprobado, se fusiona a `main`
 4. Se crea un tag de versión (opcional pero recomendado)
@@ -304,11 +336,54 @@ Cuando develop tenga funcionalidades estables listas para producción:
 -   **NO commitear** el archivo `.env` (contiene credenciales sensibles)
 -   **NO commitear** las carpetas `vendor/` y `node_modules/`
 -   Usar **mensajes de commit descriptivos** en un solo idioma
+-   Usar el formato **Conventional Commits**
 -   **Probar los cambios** antes de hacer push
 -   **Documentar** funcionalidades nuevas o cambios importantes
--   **Usar Docker** para mantener consistencia en el entorno de desarrollo (Brayan formatea ya tu PC :D)
+-   **Usar Docker** para mantener consistencia en el entorno de desarrollo
 
 ---
+
+### Commit Workflow Guidelines
+
+Sigue este formato para mantener un historial de commits limpio y comprensible:
+
+**Estructura básica:** `<type>(optional-scope): <descripción>`
+
+**Tipos de commits comunes:**
+- `feat` - Nueva funcionalidad
+- `fix` - Corrección de errores
+- `docs` - Cambios en documentación
+- `chore` - Tareas de mantenimiento
+- `refactor` - Refactorización de código
+- `style` - Cambios de formato/estilo
+- `test` - Agregar o modificar tests
+- `build` - Cambios en la build o dependencias
+- `ci` - Cambios en CI/CD
+
+**Ejemplos de commits:**
+
+```bash
+# Nuevo feature
+git commit -m "feat: agregar panel de asistencia"
+
+# Corrección de error
+git commit -m "fix: resolver problema de conexión a base de datos"
+
+# Con descripción detallada
+git commit -m "feat: agregar validación de huella dactilar" \
+           -m "- Implementa verificación biométrica" \
+           -m "- Agrega manejo de errores" \
+           -m "- Actualiza migraciones"
+
+# Documentación
+git commit -m "docs: actualizar guía de instalación"
+```
+
+**Recomendaciones:**
+- Mantén la primera línea ≤ 72 caracteres
+- Usa imperativo: "agregar" no "agregado"
+- Realiza commits pequeños y frecuentes
+- Un commit = un cambio lógico
 
 ## Solución de Problemas
 
