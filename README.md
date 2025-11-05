@@ -267,16 +267,16 @@ git checkout -b development origin/development
 git branch
 
 # 4. Crear la rama de feature desde development
-git checkout -b development/feature/nombre-funcionalidad
+git checkout -b feature/nombre-funcionalidad
 
 # 5. Realizar tus cambios y commitear frecuentemente
 git add archivo.php
 git commit -m "feat: descripción clara de los cambios realizados"
 
 # 6. Subir la rama de feature al repositorio
-git push origin development/feature/nombre-funcionalidad
+git push origin feature/nombre-funcionalidad
 
-# 7. Crear Pull Request en GitHub desde development/feature/nombre-funcionalidad hacia development
+# 7. Crear Pull Request en GitHub desde feature/nombre-funcionalidad hacia development
 # (Desde la interfaz de GitHub)
 ```
 
@@ -290,16 +290,16 @@ git checkout development
 git pull origin development
 
 # 2. Crear la rama de feature desde development
-git checkout -b development/feature/nombre-funcionalidad
+git checkout -b feature/nombre-funcionalidad
 
 # 3. Realizar tus cambios y commitear frecuentemente
 git add archivo.php
 git commit -m "feat: descripción clara de los cambios realizados"
 
 # 4. Subir la rama de feature al repositorio
-git push origin development/feature/nombre-funcionalidad
+git push origin feature/nombre-funcionalidad
 
-# 5. Crear Pull Request en GitHub desde development/feature/nombre-funcionalidad hacia development
+# 5. Crear Pull Request en GitHub desde feature/nombre-funcionalidad hacia development
 # (Desde la interfaz de GitHub)
 ```
 
@@ -307,7 +307,7 @@ git push origin development/feature/nombre-funcionalidad
 
 Una vez que tu funcionalidad esté completa:
 
-1. Crea un **Pull Request** en GitHub desde `development/feature/nombre-funcionalidad` hacia `development`
+1. Crea un **Pull Request** en GitHub desde `feature/nombre-funcionalidad` hacia `development`
 2. Espera la revisión de código del equipo
 3. Realiza los cambios solicitados si los hay
 4. Una vez aprobado, se fusionará a `development`
@@ -318,11 +318,11 @@ Una vez que tu funcionalidad esté completa:
 git checkout development
 git pull origin development
 
-# Elimina la rama local de feature
-git branch -d development/feature/nombre-funcionalidad
+# Elimina la rama local de feature (opcional)
+git branch -d feature/nombre-funcionalidad
 
 # Elimina la rama remota de feature (opcional)
-git push origin --delete development/feature/nombre-funcionalidad
+git push origin --delete feature/nombre-funcionalidad
 ```
 
 ### Pasar Cambios a Producción (development → main)
