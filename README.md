@@ -71,7 +71,6 @@ Construye e inicia los contenedores de Docker:
 ```bash
 docker-compose build
 docker-compose up -d
-docker-compose exec redis redis-cli ping
 ```
 
 ### 4. Instalar Dependencias
