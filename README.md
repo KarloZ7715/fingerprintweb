@@ -59,26 +59,45 @@ sudo apt update && sudo apt upgrade -y
 
 #### Paso 4: Instalar Docker en Ubuntu
 
-Copia y ejecuta este bloque completo en Ubuntu:
+Ahora instala Docker con este método simplificado:
 
 ```bash
 # Instalar dependencias
 sudo apt install -y ca-certificates curl gnupg lsb-release
 
-# Agregar clave de Docker (si ya usaste sudo una vez, no es necesario repetirlo)
+# Agregar clave de Docker
 sudo mkdir -p /etc/apt/keyrings
 curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
 
-# Agregar repositorio de Docker
-echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list > /dev/null
+# Crear el archivo de repositorio directamente (evita problemas con /dev/null)
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+
+# Verificar que el archivo se creó correctamente
+ls -la /etc/apt/sources.list.d/
+
+# Actualizar repositorios
+sudo apt update
 
 # Instalar Docker
-sudo apt update
 sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
 
 # Agregar tu usuario a docker
 sudo usermod -aG docker $USER
 newgrp docker
+```
+
+**Importante:** Si tienes problemas con el archivo "docker.list " primero limpia cualquier archivo corrupto previo (si **NO** has tenido problemas con la instalacion de docker en Ubuntu omite este paso):
+
+**NO** hagas este paso si no tienes problemas con docker en Ubuntu
+
+```bash
+# Eliminar archivos docker problemáticos (incluso con espacios en el nombre)
+sudo rm -f /etc/apt/sources.list.d/docker.*
+sudo rm -f "/etc/apt/sources.list.d/docker.list "
+
+# Limpiar caché de apt
+sudo apt clean
 ```
 
 #### Paso 5: Habilitar WSL Integration en Docker Desktop
@@ -92,7 +111,7 @@ newgrp docker
 
 Tienes **dos opciones** según tu situación:
 
-**Opción A: Si NO tienes cambios sin commitear**
+**Opción A: Si tienes cambios sin commitear (Migración segura)**
 
 Si ya tenías el proyecto en Windows con cambios locales, usa esta opción para no perderlos:
 
@@ -112,7 +131,7 @@ cd ~/proyectos/fingerprintweb
 git status
 ```
 
-**Opción B: Si TIENES cambios sin commitear (Migración segura)**
+**Opción B: Si NO TIENES cambios sin commitear**
 
 Abre Ubuntu y ejecuta:
 
@@ -141,7 +160,7 @@ Ahora tendrás acceso completo con buen rendimiento desde VS Code Windows.
 
 ## Instalación y Configuración
 
-> ℹ️ **Nota:** Si seguiste la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)", ya habrás completado los Pasos 1-2. Continúa desde el **Paso 3**.
+> **Nota:** Si seguiste la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)", ya habrás completado los Pasos 1-2. Continúa desde el **Paso 3**.
 
 ### 1. Clonar el Repositorio
 
@@ -469,15 +488,16 @@ Sigue este formato para mantener un historial de commits limpio y comprensible:
 **Estructura básica:** `<type>(optional-scope): <descripción>`
 
 **Tipos de commits comunes:**
-- `feat` - Nueva funcionalidad
-- `fix` - Corrección de errores
-- `docs` - Cambios en documentación
-- `chore` - Tareas de mantenimiento
-- `refactor` - Refactorización de código
-- `style` - Cambios de formato/estilo
-- `test` - Agregar o modificar tests
-- `build` - Cambios en la build o dependencias
-- `ci` - Cambios en CI/CD
+
+-   `feat` - Nueva funcionalidad
+-   `fix` - Corrección de errores
+-   `docs` - Cambios en documentación
+-   `chore` - Tareas de mantenimiento
+-   `refactor` - Refactorización de código
+-   `style` - Cambios de formato/estilo
+-   `test` - Agregar o modificar tests
+-   `build` - Cambios en la build o dependencias
+-   `ci` - Cambios en CI/CD
 
 **Ejemplos de commits:**
 
@@ -499,10 +519,11 @@ git commit -m "docs: actualizar guía de instalación"
 ```
 
 **Recomendaciones:**
-- Mantén la primera línea ≤ 72 caracteres
-- Usa imperativo: "agregar" no "agregado"
-- Realiza commits pequeños y frecuentes
-- Un commit = un cambio lógico
+
+-   Mantén la primera línea ≤ 72 caracteres
+-   Usa imperativo: "agregar" no "agregado"
+-   Realiza commits pequeños y frecuentes
+-   Un commit = un cambio lógico
 
 ---
 
