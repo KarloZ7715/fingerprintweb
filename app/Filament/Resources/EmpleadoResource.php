@@ -8,12 +8,13 @@ use Filament\Forms;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use BackedEnum;
+use UnitEnum;
 
 class EmpleadoResource extends Resource
 {
     protected static ?string $model = Empleado::class;
 
-    protected static string|BackedEnum|null $navigationIcon = 'heroicon-o-user-plus';
+    protected static BackedEnum|string|null $navigationIcon = 'heroicon-o-user-plus';
     protected static ?string $navigationLabel = 'Registrar Empleado';
     protected static ?string $pluralModelLabel = 'Empleados';
     protected static ?string $modelLabel = 'Empleado';
