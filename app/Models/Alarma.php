@@ -23,3 +23,24 @@ class Alarma extends Model
         'sucursal_id',
     ];
 }
+class Alarma  extends Model
+{
+    protected $table = 'alarma';
+
+    protected $fillable = [
+         'id',
+        'nombre',
+        'estado',
+        'duracion',
+        'h_encendido',
+        'h_apagado',
+        'sucursal_id',
+        'updated_at'
+    ];
+
+
+    public function sucursal()
+{
+    return $this->belongsTo(Sucursal::class);
+}
+}

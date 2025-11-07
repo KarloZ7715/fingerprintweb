@@ -24,7 +24,143 @@ Antes de comenzar, asegúrate de tener instalado:
 
 ---
 
+## Configuración Recomendada para Windows
+
+### Pasos de Configuración (Windows)
+
+#### Paso 1: Instalar WSL 2 con Ubuntu
+
+Abre **PowerShell como administrador** y ejecuta:
+
+```powershell
+wsl --install -d Ubuntu
+```
+
+#### Paso 2: Configurar Ubuntu (primera vez)
+
+Después, abre **Ubuntu** desde el menú Inicio. Te pedirá crear usuario y contraseña:
+
+(Si te pidió ingresar usuario y contraseña al instalar Ubuntu, omite este paso)
+
+```bash
+# Ingresa un nombre de usuario (ej: tu nombre)
+username: carloscc
+# Ingresa una contraseña (la que quieras)
+password: ••••••••
+```
+
+#### Paso 3: Actualizar Ubuntu
+
+Dentro de Ubuntu, ejecuta:
+
+```bash
+sudo apt update && sudo apt upgrade -y
+```
+
+#### Paso 4: Instalar Docker en Ubuntu
+
+Ahora instala Docker con este método simplificado:
+
+```bash
+# Instalar dependencias
+sudo apt install -y ca-certificates curl gnupg lsb-release
+
+# Agregar clave de Docker
+sudo mkdir -p /etc/apt/keyrings
+curl -fsSL https://download.docker.com/linux/ubuntu/gpg | sudo gpg --dearmor -o /etc/apt/keyrings/docker.gpg
+sudo chmod a+r /etc/apt/keyrings/docker.gpg
+
+# Crear el archivo de repositorio directamente (evita problemas con /dev/null)
+echo "deb [arch=$(dpkg --print-architecture) signed-by=/etc/apt/keyrings/docker.gpg] https://download.docker.com/linux/ubuntu $(lsb_release -cs) stable" | sudo tee /etc/apt/sources.list.d/docker.list
+
+# Verificar que el archivo se creó correctamente
+ls -la /etc/apt/sources.list.d/
+
+# Actualizar repositorios
+sudo apt update
+
+# Instalar Docker
+sudo apt install -y docker-ce docker-ce-cli containerd.io docker-compose-plugin
+
+# Agregar tu usuario a docker
+sudo usermod -aG docker $USER
+newgrp docker
+```
+
+**Importante:** Si tienes problemas con el archivo "docker.list " primero limpia cualquier archivo corrupto previo (si **NO** has tenido problemas con la instalacion de docker en Ubuntu omite este paso):
+
+**NO** hagas este paso si no tienes problemas con docker en Ubuntu
+
+```bash
+# Eliminar archivos docker problemáticos (incluso con espacios en el nombre)
+sudo rm -f /etc/apt/sources.list.d/docker.*
+sudo rm -f "/etc/apt/sources.list.d/docker.list "
+
+# Limpiar caché de apt
+sudo apt clean
+```
+
+#### Paso 5: Habilitar WSL Integration en Docker Desktop
+
+1. Abre **Docker Desktop** en Windows
+2. Ve a **Settings** → **Resources** → **WSL Integration**
+3. Activa el toggle de **Ubuntu**
+4. Haz clic en **Apply & Restart**
+
+#### Paso 6: Obtener el Proyecto en Ubuntu
+
+Tienes **dos opciones** según tu situación:
+
+**Opción A: Si tienes cambios sin commitear (Migración segura)**
+
+Si ya tenías el proyecto en Windows con cambios locales, usa esta opción para no perderlos:
+
+```bash
+# 1. Abre Ubuntu
+# 2. Crea la carpeta de destino
+mkdir -p ~/proyectos
+
+# 3. Copia todo el proyecto desde Windows a Ubuntu
+# Reemplaza 'tu-usuario' con tu usuario de Windows
+cp -r /mnt/c/Users/tu-usuario/ruta/a/fingerprintweb ~/proyectos/
+
+# 4. Entra a la carpeta
+cd ~/proyectos/fingerprintweb
+
+# 5. Verifica que tus cambios locales estén ahí
+git status
+```
+
+**Opción B: Si NO TIENES cambios sin commitear**
+
+Abre Ubuntu y ejecuta:
+
+```bash
+# Crear carpeta de proyectos
+mkdir -p ~/proyectos
+cd ~/proyectos
+
+# Clonar el repositorio
+git clone https://github.com/KarloZ7715/fingerprintweb.git
+cd fingerprintweb
+git checkout development
+```
+
+### Acceder al Proyecto desde VS Code (Windows)
+
+1. Abre **VS Code**
+2. Instala la extensión **"Remote Development"** (Microsoft)
+3. En la esquina inferior izquierda, haz clic en **"><"** (botón remoto)
+4. Selecciona **"Connect to WSL"**
+5. Abre la carpeta: `/home/tu-usuario/proyectos/fingerprintweb`
+
+Ahora tendrás acceso completo con buen rendimiento desde VS Code Windows.
+
+---
+
 ## Instalación y Configuración
+
+> **Nota:** Si seguiste la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)", ya habrás completado los Pasos 1-2. Continúa desde el **Paso 3**.
 
 ### 1. Clonar el Repositorio
 
@@ -42,7 +178,7 @@ Copia el archivo de ejemplo:
 # Windows (PowerShell)
 Copy-Item .env.example .env
 
-# Linux/Mac
+# Linux/Mac/WSL
 cp .env.example .env
 ```
 
@@ -69,16 +205,18 @@ DB_PASSWORD=tu-contraseña
 Construye e inicia los contenedores de Docker:
 
 ```bash
-docker-compose build
-docker-compose up -d
+docker compose build
+docker compose up -d
 ```
+
+> ℹ️ **Nota:** `docker compose` es la versión moderna de `docker-compose`. Si tu sistema solo reconoce `docker-compose`, es también válido.
 
 ### 4. Instalar Dependencias
 
 Instala las dependencias de PHP con Composer:
 
 ```bash
-docker-compose exec app composer install
+docker compose exec app composer install
 ```
 
 ### 5. Crear Enlace de Storage
@@ -86,7 +224,7 @@ docker-compose exec app composer install
 Crea el enlace simbólico para el almacenamiento público:
 
 ```bash
-docker-compose exec app php artisan storage:link
+docker compose exec app php artisan storage:link
 ```
 
 ### 6. Ejecutar Migraciones (Opcional)
@@ -94,7 +232,7 @@ docker-compose exec app php artisan storage:link
 Si necesitas ejecutar migraciones en la base de datos:
 
 ```bash
-docker-compose exec app php artisan migrate
+docker compose exec app php artisan migrate
 ```
 
 ### 7. Crear Usuario Administrador
@@ -102,7 +240,7 @@ docker-compose exec app php artisan migrate
 Crea tu usuario para acceder al panel de administración:
 
 ```bash
-docker-compose exec app php artisan make:filament-user
+docker compose exec app php artisan make:filament-user
 ```
 
 Proporciona la información solicitada:
@@ -129,70 +267,70 @@ Una vez completada la instalación, la aplicación estará disponible en:
 
 ```bash
 # Iniciar contenedores
-docker-compose up -d
+docker compose up -d
 
 # Detener contenedores
-docker-compose down
+docker compose down
 
 # Ver logs en tiempo real
-docker-compose logs -f app
+docker compose logs -f app
 
 # Reiniciar contenedores
-docker-compose restart
+docker compose restart
 
 # Acceder al contenedor de la aplicación
-docker-compose exec app bash
+docker compose exec app bash
 ```
 
 ### Comandos de Laravel/Artisan
 
 ```bash
 # Ejecutar migraciones
-docker-compose exec app php artisan migrate
+docker compose exec app php artisan migrate
 
 # Limpiar caché
-docker-compose exec app php artisan cache:clear
-docker-compose exec app php artisan config:clear
-docker-compose exec app php artisan route:clear
-docker-compose exec app php artisan view:clear
+docker compose exec app php artisan cache:clear
+docker compose exec app php artisan config:clear
+docker compose exec app php artisan route:clear
+docker compose exec app php artisan view:clear
 
 # Ver información del sistema
-docker-compose exec app php artisan about
+docker compose exec app php artisan about
 
 # Ver rutas de la aplicación
-docker-compose exec app php artisan route:list
+docker compose exec app php artisan route:list
 
 # Ver información de la base de datos
-docker-compose exec app php artisan db:show
+docker compose exec app php artisan db:show
 ```
 
 ### Comandos de Composer
 
 ```bash
 # Instalar dependencias
-docker-compose exec app composer install
+docker compose exec app composer install
 
 # Actualizar dependencias
-docker-compose exec app composer update
+docker compose exec app composer update
 
 # Instalar un paquete específico
-docker-compose exec app composer require vendor/package
+docker compose exec app composer require vendor/package
 ```
 
 ### Comandos de Filament
 
 ```bash
 # Crear un recurso CRUD
-docker-compose exec app php artisan make:filament-resource NombreModelo
+docker compose exec app php artisan make:filament-resource NombreModelo
 
 # Crear una página personalizada
-docker-compose exec app php artisan make:filament-page NombrePagina
+docker compose exec app php artisan make:filament-page NombrePagina
 
 # Crear un widget
-docker-compose exec app php artisan make:filament-widget NombreWidget
+docker compose exec app php artisan make:filament-widget NombreWidget
 
 # Crear usuario administrador
-docker-compose exec app php artisan make:filament-user
+docker compose exec app php artisan make:filament-user
 ```
 
 ---
@@ -246,7 +384,7 @@ git checkout development
 git pull origin development
 
 # Actualizar dependencias si hubo cambios
-docker-compose exec app composer install
+docker compose exec app composer install
 ```
 
 ### Crear una Nueva Funcionalidad
@@ -350,15 +488,16 @@ Sigue este formato para mantener un historial de commits limpio y comprensible:
 **Estructura básica:** `<type>(optional-scope): <descripción>`
 
 **Tipos de commits comunes:**
-- `feat` - Nueva funcionalidad
-- `fix` - Corrección de errores
-- `docs` - Cambios en documentación
-- `chore` - Tareas de mantenimiento
-- `refactor` - Refactorización de código
-- `style` - Cambios de formato/estilo
-- `test` - Agregar o modificar tests
-- `build` - Cambios en la build o dependencias
-- `ci` - Cambios en CI/CD
+
+-   `feat` - Nueva funcionalidad
+-   `fix` - Corrección de errores
+-   `docs` - Cambios en documentación
+-   `chore` - Tareas de mantenimiento
+-   `refactor` - Refactorización de código
+-   `style` - Cambios de formato/estilo
+-   `test` - Agregar o modificar tests
+-   `build` - Cambios en la build o dependencias
+-   `ci` - Cambios en CI/CD
 
 **Ejemplos de commits:**
 
@@ -380,19 +519,36 @@ git commit -m "docs: actualizar guía de instalación"
 ```
 
 **Recomendaciones:**
-- Mantén la primera línea ≤ 72 caracteres
-- Usa imperativo: "agregar" no "agregado"
-- Realiza commits pequeños y frecuentes
-- Un commit = un cambio lógico
+
+-   Mantén la primera línea ≤ 72 caracteres
+-   Usa imperativo: "agregar" no "agregado"
+-   Realiza commits pequeños y frecuentes
+-   Un commit = un cambio lógico
 
 ---
 
 ## Solución de Problemas
 
+### Error: "docker-compose: command not found"
+
+Si recibas este error, usa la versión moderna:
+
+```bash
+# En lugar de:
+docker-compose build
+
+# Usa:
+docker compose build
+```
+
+La mayoría de sistemas modernos incluyen `docker compose` (sin guión). Si tampoco funciona, significa que Docker no está correctamente instalado.
+
+**Para Windows con WSL:** Asegúrate de seguir la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)".
+
 ### Error de permisos en storage
 
 ```bash
-docker-compose exec app chmod -R 775 storage bootstrap/cache
+docker compose exec app chmod -R 775 storage bootstrap/cache
 ```
 
 ### Error de conexión a la base de datos
@@ -401,29 +557,33 @@ Verifica que:
 
 1. Tengas conexión a internet (la BD es remota)
 2. Las credenciales en `.env` sean correctas
-3. Ejecuta: `docker-compose exec app php artisan db:show`
+3. Ejecuta: `docker compose exec app php artisan db:show`
 
 ### Los contenedores no inician
 
 ```bash
 # Verificar estado
-docker-compose ps
+docker compose ps
 
 # Ver logs de errores
-docker-compose logs
+docker compose logs
 
 # Reconstruir contenedores
-docker-compose down
-docker-compose build --no-cache
-docker-compose up -d
+docker compose down
+docker compose build --no-cache
+docker compose up -d
 ```
 
 ### Error "Class not found"
 
 ```bash
-docker-compose exec app composer dump-autoload
-docker-compose exec app php artisan optimize:clear
+docker compose exec app composer dump-autoload
+docker compose exec app php artisan optimize:clear
 ```
+
+### Latencia muy alta en Windows
+
+Si experimentas tiempos de carga >5 segundos, **no estás usando WSL 2**. Sigue la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)" para obtener rendimiento óptimo (90-150ms).
 
 ---
 
