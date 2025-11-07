@@ -3,23 +3,20 @@
 namespace App\Models;
 
 use Filament\Models\Contracts\FilamentUser;
-use Filament\Models\Contracts\HasName;
-use Filament\Panel;
 use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\Notifiable;
+use Filament\Panel;
 
-class Administrador extends Authenticatable implements FilamentUser, HasName
+class Administrador extends Authenticatable implements FilamentUser
 {
     use Notifiable;
 
     protected $table = 'administrador';
 
     protected $fillable = [
-        'cedula',
-        'primer_nombre',
-        'primer_apellido',
+        'name',
+        'username',
         'email',
-        'telefono',
         'password',
     ];
 
@@ -28,23 +25,9 @@ class Administrador extends Authenticatable implements FilamentUser, HasName
         'remember_token',
     ];
 
-    protected $casts = [
-        'password' => 'hashed',
-    ];
-
-    public const CREATED_AT = 'created_at';
-
-    public const UPDATED_AT = 'updated_at';
-
     public function canAccessPanel(Panel $panel): bool
     {
+        // Puedes restringir acceso si quieres, por ahora lo dejamos en true
         return true;
-    }
-
-    public function getFilamentName(): string
-    {
-        $fullName = trim(sprintf('%s %s', $this->primer_nombre ?? '', $this->primer_apellido ?? ''));
-
-        return $fullName !== '' ? $fullName : ($this->email ?? (string) $this->cedula);
     }
 }

@@ -1,3 +1,134 @@
+# fingerprintweb — Desarrollo local (rápido)
+
+Este repositorio usa Laravel + Filament. Para desarrollo rápido y reproducible usamos Docker y SQLite por defecto. Estas instrucciones te ayudarán a levantar el entorno, ejecutar migraciones y cambiar a MySQL si lo necesitas.
+
+## Requisitos
+- Docker y docker-compose instalados
+- Git
+
+## Levantar el entorno (rápido)
+
+1. Levanta los contenedores:
+
+```bash
+docker-compose up -d
+```
+
+2. Ejecuta las migraciones (la configuración por defecto usa SQLite dentro del contenedor):
+
+```bash
+docker-compose exec app php artisan migrate --force
+```
+
+3. Limpiar caches / regenerar autoload si haces cambios en clases:
+
+```bash
+docker-compose exec app composer dump-autoload
+docker-compose exec app php artisan optimize:clear
+```
+
+4. Ver rutas para comprobar que la app arranca:
+
+```bash
+docker-compose exec app php artisan route:list
+```
+
+## Comandos útiles dentro del contenedor `app`
+
+- Abrir una shell dentro del contenedor:
+
+```bash
+docker-compose exec app bash
+```
+
+- Ejecutar artisan:
+
+```bash
+docker-compose exec app php artisan <comando>
+```
+
+- Ejecutar composer/npm (si necesitas):
+
+```bash
+docker-compose exec app composer install
+docker-compose exec app npm install
+docker-compose exec app npm run dev
+```
+
+## Crear usuario administrador (rápido)
+
+El proyecto incluye un seeder para crear un usuario administrador por defecto. Para ejecutarlo:
+
+```bash
+docker-compose exec app php artisan db:seed
+```
+
+Esto creará un administrador con las siguientes credenciales:
+- Email: admin@fingerprint.local
+- Usuario: admin
+- Contraseña: password
+
+También puedes crear administradores adicionales manualmente con Tinker:
+
+```bash
+docker-compose exec app php artisan tinker
+>>> \App\Models\Administrador::create([
+    'name' => 'Tu Nombre',
+    'username' => 'tu-usuario',
+    'email' => 'tu@email.com',
+    'password' => bcrypt('tu-password')
+]);
+```
+
+## Si quieres usar MySQL en Docker (opcional)
+
+Actualmente el proyecto está configurado por defecto para SQLite (más simple para dev). Si prefieres usar MySQL en Docker:
+
+1. Edita `.env` y ajusta:
+
+```dotenv
+DB_CONNECTION=mysql
+DB_HOST=mysql
+DB_PORT=3306
+DB_DATABASE=supertiendasis_control
+DB_USERNAME=root
+DB_PASSWORD=secret
+```
+
+2. Asegúrate de que `docker-compose.yml` contenga el servicio `mysql` (ya viene incluido en el repo). Luego recrea contenedores:
+
+```bash
+docker-compose up -d --build
+```
+
+3. (Opcional) Si el contenedor MySQL tarda en arrancar añade un `depends_on`/`healthcheck` para que `app` espere antes de ejecutar migraciones.
+
+Nota: para evitar problemas de puertos en el host, el servicio MySQL en `docker-compose.yml` no expone 3306 por defecto; la comunicación se realiza por la red de Docker entre contenedores.
+
+## Qué cambié durante el setup local
+
+- Se añadieron y ajustaron varias `Filament Resources` y `Pages` para compatibilidad con Filament v4 (tipos `navigationIcon`, `navigationGroup`, `view`, y correcciones PSR-4 en páginas). Si ves errores de autoload ejecuta:
+
+```bash
+docker-compose exec app composer dump-autoload
+docker-compose exec app php artisan package:discover
+```
+
+## Troubleshooting rápido
+- Si Composer se queja de extensiones faltantes (p. ej. `ext-intl`), instala la extensión dentro de la imagen PHP o añade la extensión a la imagen Docker que uses.
+- Si `php artisan migrate` falla por conexión MySQL, asegúrate de que `.env` esté apuntando a SQLite o que el servicio MySQL esté operativo (ver `docker-compose logs mysql`).
+
+## Próximos pasos sugeridos
+- Crear un `seeder` para el usuario admin y documentarlo.
+- Añadir healthcheck para MySQL en `docker-compose.yml` si decides usar MySQL permanentemente.
+
+---
+
+Si quieres, puedo ahora:
+- Añadir un seeder que cree un admin por defecto.
+- Hacer un escaneo automático de `app/Filament` para normalizar propiedades restantes.
+
+Archivo creado: `README.md` (raíz del repo)
 # Fingerprintweb - Gestión Automática de Asistencias y Detección de Movimiento con Alarma.
 
 Proyecto universitario desarrollado con Laravel 12 y Filament 4 para la gestión de asistencia mediante huellas dactilares y detección de movimiento.
