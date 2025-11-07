@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\AlarmaController;
 use App\Http\Controllers\Api\EventoController;
 
+Route::get('/alarma/{id}/estado', [AlarmaController::class, 'show']);
 Route::post('/alarma/{id}/activar', [AlarmaController::class, 'activar']);
 Route::post('/alarma/{id}/desactivar', [AlarmaController::class, 'desactivar']);
 Route::get('/eventos', [EventoController::class, 'index']);
