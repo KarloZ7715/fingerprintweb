@@ -8,7 +8,6 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
-
 class EventosTable
 {
     public static function configure(Table $table): Table
@@ -24,9 +23,11 @@ class EventosTable
                     ->searchable(),
                 TextColumn::make('Evento')
                     ->searchable(),
-                     TextColumn::make('Accion')
+                TextColumn::make('Accion')
                     ->searchable(),
             ])
+            // Aquí agregas el orden por id descendente
+            ->defaultSort('id', 'desc')
             ->filters([
                 //
             ])
