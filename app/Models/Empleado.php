@@ -77,4 +77,43 @@ class Empleado extends Model
             ($this->segundo_apellido ?? '')
         );
     }
+
+    /**
+     * Verificar si el empleado tiene huella registrada
+     */
+    public function tieneHuella(): bool
+    {
+        return $this->huellas()
+            ->where('estado', 'Activa')
+            ->exists();
+    }
+
+    /**
+     * Obtener la huella activa del empleado
+     */
+    public function huellaActiva(): ?Huella
+    {
+        return $this->huellas()
+            ->where('estado', 'Activa')
+            ->first();
+    }
+
+    /**
+     * Scope para empleados pendientes de huella
+     */
+    public function scopePendientesHuella($query)
+    {
+        return $query->where('estado', 'Pendiente_Huella');
+    }
+
+    /**
+     * Scope para empleados activos con huella
+     */
+    public function scopeActivosConHuella($query)
+    {
+        return $query->where('estado', 'Activo')
+            ->whereHas('huellas', function ($q) {
+                $q->where('estado', 'Activa');
+            });
+    }
 }
