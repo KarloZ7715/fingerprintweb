@@ -25,7 +25,6 @@ class AlarmasTable
                 TextColumn::make('estado')
                     ->searchable()
                     ->formatStateUsing(function ($state) {
-                        // Puedes adaptar la presentación del estado si lo deseas
                         if ($state === 'Apagada') {
                             return 'Apagada';
                         }
@@ -49,78 +48,93 @@ class AlarmasTable
                     ->time()
                     ->sortable()
                     ->label('Hora apagado'),
-
                 TextColumn::make('created_at')
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
             ])
             ->filters([
-                // Puedes agregar filtros si lo necesitas
+                // Puedes agregar filtros aquí si lo necesitas
             ])
             ->recordActions([
                 ViewAction::make(),
                 EditAction::make(),
-                Action::make('accionar')
-                    ->label(fn($record) => match ($record->estado) {
-                        'Activa' => 'Apagar',
-                        'Apagada' => 'Esperar',
-                        'En Espera' => 'Activar',
-                        default => 'Cambiar Estado'
-                    })
-                    ->color(fn($record) => match ($record->estado) {
-                        'Activa' => 'danger',
-                        'Apagada' => 'info',
-                        'En Espera' => 'success',
-                        default => 'primary'
-                    })
+
+                // Acción: Apagar (solo si está En Espera o Activa)
+                Action::make('apagar')
+                    ->label('Apagar')
+                    ->color('danger')
                     ->requiresConfirmation()
-                    ->modalHeading(fn($record) => match ($record->estado) {
-                        'Activa' => '¿Desea apagar la alarma manualmente?',
-                        'Apagada' => '¿Desea poner la alarma en espera?',
-                        'En Espera' => '¿Desea activar la alarma?',
-                        default => '¿Desea cambiar el estado de la alarma?'
-                    })
+                    ->visible(fn ($record) => in_array($record->estado, ['En Espera', 'Activa']))
+                    ->modalHeading('¿Desea apagar la alarma manualmente?')
                     ->action(function ($record) {
-                        $nuevoEstado = match ($record->estado) {
-                            'Activa' => 'Apagada',     
-                            'Apagada' => 'En Espera',  
-                            'En Espera' => 'Activa',   
-                            default => 'Apagada'
-                        };
-
-                        $accion = match ($nuevoEstado) {
-                            'Apagada' => 'Alarma apagada manualmente',
-                            'En Espera' => 'Alarma puesta en espera manualmente',
-                            'Activa' => 'Alarma activada manualmente',
-                            default => 'Estado cambiado manualmente'
-                        };
-
-                        $eventoTipo = match ($nuevoEstado) {
-                            'Apagada' => 'Desactivar',
-                            'En Espera' => 'Esperar',
-                            'Activa' => 'Activar',
-                            default => 'Cambio'
-                        };
-
-                        $record->estado = $nuevoEstado;
+                        $record->estado = 'Apagada';
                         $record->save();
 
-                        // Registrar evento en la BD
                         $fechaEnvio = Carbon::now('America/Bogota');
-
                         Evento::create([
                             'alarma_id' => $record->id,
                             'fecha_evento' => $fechaEnvio,
-                            'Evento' => $eventoTipo,
-                            'Accion' => $accion,
+                            'Evento' => 'Desactivar',
+                            'Accion' => 'Alarma apagada manualmente',
                         ]);
 
                         Notification::make()
                             ->success()
-                            ->title($accion)
+                            ->title('Alarma apagada manualmente')
                             ->send();
                     }),
+
+                // Acción: Poner en espera (solo si está Apagada o Activa)
+                Action::make('en_espera')
+                    ->label('Esperar')
+                    ->color('info')
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => in_array($record->estado, ['Apagada', 'Activa']))
+                    ->modalHeading('¿Desea poner la alarma en espera?')
+                    ->action(function ($record) {
+                        $record->estado = 'En Espera';
+                        $record->save();
+
+                        $fechaEnvio = Carbon::now('America/Bogota');
+                        Evento::create([
+                            'alarma_id' => $record->id,
+                            'fecha_evento' => $fechaEnvio,
+                            'Evento' => 'Esperar',
+                            'Accion' => 'Alarma puesta en espera manualmente',
+                        ]);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Alarma puesta en espera manualmente')
+                            ->send();
+                    }),
+
+                // Acción: Activar (solo si está En Espera o Apagada)
+                Action::make('activar')
+                    ->label('Activar')
+                    ->color('success')
+                    ->requiresConfirmation()
+                    ->visible(fn ($record) => in_array($record->estado, ['En Espera', 'Apagada']))
+                    ->modalHeading('¿Desea activar la alarma?')
+                    ->action(function ($record) {
+                        $record->estado = 'Activa';
+                        $record->save();
+
+                        $fechaEnvio = Carbon::now('America/Bogota');
+                        Evento::create([
+                            'alarma_id' => $record->id,
+                            'fecha_evento' => $fechaEnvio,
+                            'Evento' => 'Activar',
+                            'Accion' => 'Alarma activada manualmente',
+                        ]);
+
+                        Notification::make()
+                            ->success()
+                            ->title('Alarma activada manualmente')
+                            ->send();
+                    }),
+
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
