@@ -9,7 +9,8 @@ class Empleado extends Model
 {
     use HasFactory;
 
-    protected $table = 'empleado';
+    // The migrations create the table as 'employees' (English plural). Map the model to that table.
+    protected $table = 'employees';
 
     protected $fillable = [
         'cedula',
