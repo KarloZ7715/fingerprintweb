@@ -22,4 +22,8 @@ class Evento extends Model
 {
     return $this->hasMany(\App\Models\envio::class, 'evento_id');
 }
+public function contacto()
+{
+    return $this->belongsTo(\App\Models\ContactoEmergencia::class, 'contacto_id');
+}
 }

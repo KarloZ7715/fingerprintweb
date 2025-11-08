@@ -18,23 +18,36 @@ class EventosTable
                 TextColumn::make('fecha_evento')
                     ->dateTime()
                     ->sortable(),
+
                 TextColumn::make('Alarma.nombre')
                     ->label('Alarma asociada')
                     ->sortable()
                     ->searchable(),
-                TextColumn::make('Evento')
-                    ->searchable(),
+
+                
                 TextColumn::make('Accion')
                     ->searchable(),
 
-                // NUEVAS COLUMNAS
                 TextColumn::make('envios_forma')
                     ->label('Forma de envío')
-                    ->getStateUsing(fn ($record) => $record->envios->pluck('forma')->implode(', ') ?: 'No disponible'),
+                    ->getStateUsing(fn ($record) => 
+                        $record->envios->pluck('forma')->implode(', ') ?: 'No disponible'
+                    ),
 
                 TextColumn::make('envios_estado')
                     ->label('Estado del envío')
-                    ->getStateUsing(fn ($record) => $record->envios->pluck('estado')->implode(', ') ?: 'No disponible'),
+                    ->getStateUsing(fn ($record) => 
+                        $record->envios->pluck('estado')->implode(', ') ?: 'No disponible'
+                    ),
+
+                TextColumn::make('envios_contacto')
+                    ->label('Enviado a')
+                    ->getStateUsing(fn ($record) => 
+                        $record->envios
+                            ->map(fn ($envio) => $envio->contacto?->nombre_completo)
+                            ->filter()
+                            ->implode(', ') ?: 'No disponible'
+                    ),
             ])
             ->defaultSort('id', 'desc')
             ->filters([
