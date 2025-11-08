@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\Alarma;
 use App\Models\Evento;
+use Carbon\Carbon;
 
 class AlarmaController extends Controller
 {
@@ -37,14 +38,30 @@ class AlarmaController extends Controller
         $alarma = Alarma::findOrFail($id);
         $alarma->estado = 'Activa';
         $alarma->save();
-        // Crea evento
-        Evento::create([
+
+        // 1. Crea el evento
+        $evento = Evento::create([
             'alarma_id' => $alarma->id,
             'fecha_evento' => now(),
             'Evento' => 'Activar',
             'Accion' => 'Alarma activada por API'
-            
         ]);
+
+        // 2. Busca todos los contactos de la sucursal
+        $contactos = \App\Models\ContactoEmergencia::where('sucursal_id', $alarma->sucursal_id)->get();
+
+        $fechaEnvio = Carbon::now('America/Bogota');
+        // 3. Crea un registro de envio para cada contacto
+        foreach ($contactos as $contacto) {
+            \App\Models\envio::create([
+                'evento_id'   => $evento->id,
+                'contacto_id' => $contacto->id,
+                'fecha_envio' => $fechaEnvio,
+                'estado'      => 'Pendiente',   // Estado inicial, personaliza si quieres
+                'forma'       => 'Correo',      // Canal, cambia si necesitas SMS o Llamada, etc
+            ]);
+        }
+
         return response()->json(['message' => 'Alarma activada']);
     }
 
@@ -53,13 +70,29 @@ class AlarmaController extends Controller
         $alarma = Alarma::findOrFail($id);
         $alarma->estado = 'Inactiva';
         $alarma->save();
-        // Crea evento
-        Evento::create([
+        $fechaEnvio = Carbon::now('America/Bogota');
+        // 1. Crea el evento
+        $evento = Evento::create([
             'alarma_id' => $alarma->id,
-            'fecha_evento' => now(),
+            'fecha_evento' =>  $fechaEnvio,
             'Evento' => 'Desactivar',
             'Accion' => 'Alarma desactivada por API'
         ]);
+
+        // 2. Busca todos los contactos de la sucursal
+        $contactos = \App\Models\ContactoEmergencia::where('sucursal_id', $alarma->sucursal_id)->get();
+
+        // 3. Crea un registro de envio para cada contacto
+        foreach ($contactos as $contacto) {
+            \App\Models\envio::create([
+                'evento_id'   => $evento->id,
+                'contacto_id' => $contacto->id,
+                'fecha_envio' => now(),
+                'estado'      => 'Pendiente',   // Estado inicial, personaliza si quieres
+                'forma'       => 'Correo',      // Canal, puedes personalizar
+            ]);
+        }
+
         return response()->json(['message' => 'Alarma desactivada']);
     }
 }

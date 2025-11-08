@@ -18,4 +18,8 @@ class Evento extends Model
     {
         return $this->belongsTo(Alarma::class);
     }
+    public function envios()
+{
+    return $this->hasMany(\App\Models\envio::class, 'evento_id');
+}
 }

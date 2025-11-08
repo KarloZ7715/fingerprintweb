@@ -8,6 +8,7 @@ use Filament\Actions\EditAction;
 use Filament\Actions\ViewAction;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+
 class EventosTable
 {
     public static function configure(Table $table): Table
@@ -25,9 +26,16 @@ class EventosTable
                     ->searchable(),
                 TextColumn::make('Accion')
                     ->searchable(),
-                    
+
+                // NUEVAS COLUMNAS
+                TextColumn::make('envios_forma')
+                    ->label('Forma de envío')
+                    ->getStateUsing(fn ($record) => $record->envios->pluck('forma')->implode(', ') ?: 'No disponible'),
+
+                TextColumn::make('envios_estado')
+                    ->label('Estado del envío')
+                    ->getStateUsing(fn ($record) => $record->envios->pluck('estado')->implode(', ') ?: 'No disponible'),
             ])
-            // Aquí agregas el orden por id descendente
             ->defaultSort('id', 'desc')
             ->filters([
                 //

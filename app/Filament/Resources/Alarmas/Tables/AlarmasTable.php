@@ -12,7 +12,7 @@ use Filament\Notifications\Notification;
 use Filament\Actions\Action;
 use App\Models\Evento; 
 use Illuminate\Support\Facades\Auth;
-
+use Carbon\Carbon;
 class AlarmasTable
 {
     public static function configure(Table $table): Table
@@ -44,6 +44,7 @@ class AlarmasTable
                     ->dateTime()
                     ->sortable()
                     ->toggleable(isToggledHiddenByDefault: true),
+                    
             ])
             ->filters([
                 //
@@ -69,9 +70,11 @@ class AlarmasTable
                         $record->save();
 
                         // Registrar evento en la BD
+                                $fechaEnvio = Carbon::now('America/Bogota');
+
                         Evento::create([
                             'alarma_id' => $record->id,
-                            'fecha_evento' => now(),
+                            'fecha_evento' =>$fechaEnvio,
                             'Evento' => $nuevoEstado === 'Activa' ? 'Activar' : 'Desactivar',
                             'Accion' => $accion,
                         

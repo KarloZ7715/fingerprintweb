@@ -24,4 +24,8 @@ class Alarma  extends Model
 {
     return $this->belongsTo(Sucursal::class);
 }
+public function evento()
+{
+    return $this->hasOne(Evento::class, 'alarma_id')->latest();
+}
 }
