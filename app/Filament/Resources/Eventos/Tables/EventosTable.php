@@ -25,6 +25,7 @@ class EventosTable
                     ->searchable(),
                 TextColumn::make('Accion')
                     ->searchable(),
+                    
             ])
             // Aquí agregas el orden por id descendente
             ->defaultSort('id', 'desc')
