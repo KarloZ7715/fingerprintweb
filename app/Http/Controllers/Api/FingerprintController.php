@@ -3,105 +3,68 @@
 namespace App\Http\Controllers\Api;
 
 use App\Http\Controllers\Controller;
+use App\Http\Requests\StoreFingerprintRequest;
 use App\Models\Empleado;
 use App\Models\Huella;
+use App\Services\FingerprintService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
-use Illuminate\Support\Facades\Validator;
 
 /**
  * Controlador API para gestión de huellas dactilares
  * 
  * Endpoints consumidos por ESP32 con sensor AS608
+ * Delega lógica de negocio a FingerprintService
  */
 class FingerprintController extends Controller
 {
+    /**
+     * Constructor con inyección de dependencias
+     */
+    public function __construct(
+        private FingerprintService $fingerprintService
+    ) {
+    }
     /**
      * Almacenar huella registrada por ESP32
      * 
      * POST /api/fingerprint/store
      * 
-     * @param Request $request
+     * @param StoreFingerprintRequest $request Validación automática
      * @return JsonResponse
      */
-    public function store(Request $request): JsonResponse
+    public function store(StoreFingerprintRequest $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
-            'empleado_id' => 'required|exists:empleado,id',
-            'slot_id' => 'required|integer|min:0|max:299|unique:huella,numero_slot',
-            'template' => 'required|string',
-            'quality_score' => 'required|integer|min:0|max:255',
-        ]);
-
-        if ($validator->fails()) {
-            Log::channel('fingerprint')->warning('Validación fallida en store', [
-                'errors' => $validator->errors(),
-                'request' => $request->all(),
-            ]);
-
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos inválidos',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
-            DB::beginTransaction();
+            $validated = $request->validated();
 
-            // Verificar que empleado esté en estado correcto
-            $empleado = Empleado::findOrFail($request->empleado_id);
-
-            if ($empleado->estado !== 'Pendiente_Huella') {
-                return response()->json([
-                    'success' => false,
-                    'message' => 'El empleado no está pendiente de registro de huella',
-                    'current_estado' => $empleado->estado,
-                ], 400);
-            }
-
-            // Crear registro de huella
-            $huella = Huella::create([
-                'empleado_id' => $request->empleado_id,
-                'numero_slot' => $request->slot_id,
-                'template_huella' => base64_decode($request->template),
-                'calidad' => $request->quality_score,
-                'estado' => 'Activa',
-                'enrolado_por' => $request->input('admin_id', null),
-                'tipo_dedo' => $request->input('tipo_dedo', 'Indice'),
-                'mano' => $request->input('mano', 'Derecha'),
-            ]);
-
-            // Actualizar estado del empleado a Activo
-            $empleado->estado = 'Activo';
-            $empleado->save();
-
-            DB::commit();
+            // Delegar lógica de negocio al service
+            $result = $this->fingerprintService->enrollFingerprint(
+                $validated['empleado_id'],
+                $validated['slot_id'],
+                $validated['template'],
+                $validated['quality_score'],
+                $validated['admin_id'] ?? null,
+                $validated['tipo_dedo'] ?? 'Indice',
+                $validated['mano'] ?? 'Derecha'
+            );
 
             Log::channel('fingerprint')->info('Huella registrada exitosamente', [
-                'empleado_id' => $empleado->id,
-                'slot_id' => $huella->numero_slot,
-                'quality' => $huella->calidad,
+                'empleado_id' => $result['empleado_id'],
+                'slot_id' => $result['slot_id'],
+                'quality' => $validated['quality_score'],
             ]);
 
             return response()->json([
                 'success' => true,
                 'message' => 'Huella registrada correctamente',
-                'data' => [
-                    'huella_id' => $huella->id,
-                    'empleado_id' => $empleado->id,
-                    'slot_id' => $huella->numero_slot,
-                    'estado_empleado' => $empleado->estado,
-                ],
+                'data' => $result,
             ], 201);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-
             Log::channel('fingerprint')->error('Error al registrar huella', [
-                'empleado_id' => $request->empleado_id,
+                'empleado_id' => $request->input('empleado_id'),
                 'error' => $e->getMessage(),
                 'trace' => $e->getTraceAsString(),
             ]);
@@ -124,9 +87,7 @@ class FingerprintController extends Controller
     public function getUsedSlots(): JsonResponse
     {
         try {
-            $usedSlots = Huella::where('estado', 'Activa')
-                ->pluck('numero_slot')
-                ->toArray();
+            $usedSlots = $this->fingerprintService->getUsedSlots();
 
             return response()->json([
                 'success' => true,
@@ -159,34 +120,26 @@ class FingerprintController extends Controller
     public function deleteSlot(int $slotId): JsonResponse
     {
         try {
-            $huella = Huella::where('numero_slot', $slotId)->first();
-
-            if (!$huella) {
+            // Verificar que el slot existe en DB
+            if (!$this->fingerprintService->isSlotOccupied($slotId)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Slot no encontrado en base de datos',
                 ], 404);
             }
 
-            DB::beginTransaction();
+            // Delegar rollback al service
+            $success = $this->fingerprintService->rollbackEnrollment($slotId);
 
-            $empleadoId = $huella->empleado_id;
-
-            // Eliminar huella
-            $huella->delete();
-
-            // Revertir empleado a Pendiente_Huella
-            $empleado = Empleado::find($empleadoId);
-            if ($empleado && $empleado->estado === 'Activo') {
-                $empleado->estado = 'Pendiente_Huella';
-                $empleado->save();
+            if (!$success) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'Error al eliminar slot del sensor ESP32',
+                ], 500);
             }
-
-            DB::commit();
 
             Log::channel('fingerprint')->info('Slot eliminado (rollback)', [
                 'slot_id' => $slotId,
-                'empleado_id' => $empleadoId,
             ]);
 
             return response()->json([
@@ -196,8 +149,6 @@ class FingerprintController extends Controller
             ]);
 
         } catch (\Exception $e) {
-            DB::rollBack();
-
             Log::channel('fingerprint')->error('Error al eliminar slot', [
                 'slot_id' => $slotId,
                 'error' => $e->getMessage(),
@@ -220,22 +171,15 @@ class FingerprintController extends Controller
      */
     public function identify(Request $request): JsonResponse
     {
-        $validator = Validator::make($request->all(), [
+        // Validación inline
+        $validated = $request->validate([
             'slot_id' => 'required|integer|min:0|max:299',
             'confidence' => 'required|integer|min:0|max:100',
         ]);
 
-        if ($validator->fails()) {
-            return response()->json([
-                'success' => false,
-                'message' => 'Datos inválidos',
-                'errors' => $validator->errors(),
-            ], 422);
-        }
-
         try {
             $huella = Huella::with(['empleado.horario', 'empleado.sucursal'])
-                ->where('numero_slot', $request->slot_id)
+                ->where('numero_slot', $validated['slot_id'])
                 ->where('estado', 'Activa')
                 ->first();
 
@@ -250,8 +194,8 @@ class FingerprintController extends Controller
 
             Log::channel('fingerprint')->info('Empleado identificado', [
                 'empleado_id' => $empleado->id,
-                'slot_id' => $request->slot_id,
-                'confidence' => $request->confidence,
+                'slot_id' => $validated['slot_id'],
+                'confidence' => $validated['confidence'],
             ]);
 
             return response()->json([
@@ -270,13 +214,13 @@ class FingerprintController extends Controller
                         'id' => $empleado->horario->id,
                         'nombre' => $empleado->horario->nombre ?? null,
                     ] : null,
-                    'confidence' => $request->confidence,
+                    'confidence' => $validated['confidence'],
                 ],
             ]);
 
         } catch (\Exception $e) {
             Log::channel('fingerprint')->error('Error al identificar empleado', [
-                'slot_id' => $request->slot_id,
+                'slot_id' => $validated['slot_id'] ?? null,
                 'error' => $e->getMessage(),
             ]);
 
@@ -297,18 +241,8 @@ class FingerprintController extends Controller
     public function getAvailableSlot(): JsonResponse
     {
         try {
-            $usedSlots = Huella::where('estado', 'Activa')
-                ->pluck('numero_slot')
-                ->toArray();
-
-            // Buscar primer slot libre (0-299)
-            $availableSlot = null;
-            for ($i = 0; $i < 300; $i++) {
-                if (!in_array($i, $usedSlots)) {
-                    $availableSlot = $i;
-                    break;
-                }
-            }
+            $availableSlot = $this->fingerprintService->getAvailableSlot();
+            $usedSlots = $this->fingerprintService->getUsedSlots();
 
             if ($availableSlot === null) {
                 return response()->json([
