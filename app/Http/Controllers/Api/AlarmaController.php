@@ -43,20 +43,18 @@ class AlarmaController extends Controller
 
         $fechaEnvio = Carbon::now('America/Bogota');
 
-        // 1. Crea el evento
         $evento = Evento::create([
             'alarma_id' => $alarma->id,
             'fecha_evento' => $fechaEnvio,
             'Evento' => 'Activar',
-            'Accion' => 'Alarma activada por API'
+            'Accion' => 'Alarma activada: Se ha detectado movimiento.'
         ]);
 
-        // 2. Busca todos los contactos de la sucursal
         $contactos = \App\Models\ContactoEmergencia::where('sucursal_id', $alarma->sucursal_id)->get();
 
-        // 3. Crea un registro de envio y envía correo para cada contacto
         foreach ($contactos as $contacto) {
-            \App\Models\envio::create([
+            // Registro inicial, antes de enviar
+            $envio = \App\Models\envio::create([
                 'evento_id'   => $evento->id,
                 'contacto_id' => $contacto->id,
                 'fecha_envio' => $fechaEnvio,
@@ -64,13 +62,24 @@ class AlarmaController extends Controller
                 'forma'       => 'Correo',
             ]);
 
-            // Enviar el correo a cada contacto de emergencia
-            Mail::to($contacto->correo)
-                ->send(new NotificacionAlarma(
-                    '¡Alarma activada!',
-                    $alarma,
-                    $evento
-                ));
+            // Intentar enviar correo
+            try {
+                Mail::to($contacto->correo)
+                    ->send(new NotificacionAlarma(
+                        '¡Alarma activada!',
+                        $alarma,
+                        $evento
+                    ));
+                // Si NO hay excepción, marcar como Enviado
+                $envio->estado = 'Enviado';
+                $envio->save();
+            } catch (\Exception $ex) {
+                // Si ocurre error, marcar como Fallido
+                $envio->estado = 'Fallido';
+                $envio->save();
+
+                // Aquí podrías registrar log o avisar al admin
+            }
         }
 
         return response()->json(['message' => 'Alarma activada']);
@@ -79,12 +88,11 @@ class AlarmaController extends Controller
     public function desactivar($id)
     {
         $alarma = Alarma::findOrFail($id);
-        $alarma->estado = 'Inactiva';
+        $alarma->estado = 'Apagada';
         $alarma->save();
 
         $fechaEnvio = Carbon::now('America/Bogota');
 
-        // 1. Crea el evento
         $evento = Evento::create([
             'alarma_id' => $alarma->id,
             'fecha_evento' => $fechaEnvio,
@@ -92,27 +100,8 @@ class AlarmaController extends Controller
             'Accion' => 'Alarma desactivada por API'
         ]);
 
-        // 2. Busca todos los contactos de la sucursal
-        $contactos = \App\Models\ContactoEmergencia::where('sucursal_id', $alarma->sucursal_id)->get();
-
-        // 3. Crea un registro de envio y envía correo para cada contacto
-        foreach ($contactos as $contacto) {
-            \App\Models\envio::create([
-                'evento_id'   => $evento->id,
-                'contacto_id' => $contacto->id,
-                'fecha_envio' => $fechaEnvio,
-                'estado'      => 'Pendiente',
-                'forma'       => 'Correo',
-            ]);
-
-            // Enviar el correo a cada contacto de emergencia
-            Mail::to($contacto->correo)
-                ->send(new NotificacionAlarma(
-                    '¡Alarma desactivada!',
-                    $alarma,
-                    $evento 
-                ));
-        }
+        // Opcionalmente, puedes hacer registros de envío aquí o no (según tu lógica)
+        // No envía correos por especificación
 
         return response()->json(['message' => 'Alarma desactivada']);
     }

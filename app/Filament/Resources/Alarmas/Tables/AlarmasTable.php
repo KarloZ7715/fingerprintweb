@@ -56,10 +56,9 @@ class AlarmasTable
             ->filters([
                 // Puedes agregar filtros aquí si lo necesitas
             ])
-            ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
 
+            ->recordActions([
+                EditAction::make(),
                 // Acción: Apagar (solo si está En Espera o Activa)
                 Action::make('apagar')
                     ->label('Apagar')
