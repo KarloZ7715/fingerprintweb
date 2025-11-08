@@ -9,7 +9,8 @@ class Empleado extends Model
 {
     use HasFactory;
 
-    protected $table = 'empleado'; 
+    protected $table = 'empleado';
+
     protected $fillable = [
         'cedula',
         'primer_nombre',
@@ -18,6 +19,11 @@ class Empleado extends Model
         'estado',
         'sucursal_id',
     ];
+
+    public function horarios(): BelongsToMany
+    {
+        return $this->belongsToMany(Horario::class, 'empleado_horario', 'empleado_id', 'horario_id');
+    }
 
     public function huella()
     {
