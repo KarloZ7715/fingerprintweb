@@ -155,8 +155,12 @@ class CreateEmpleado extends CreateRecord
         ];
     }
 
+    /**
+     * Redirección deshabilitada, se maneja en afterCreate()
+     */
     protected function getRedirectUrl(): string
     {
+        // Se sobrescribe en afterCreate con redirect manual
         return $this->getResource()::getUrl('index');
     }
 
@@ -207,11 +211,11 @@ class CreateEmpleado extends CreateRecord
 
     /**
      * Acciones después de crear el empleado
-     * Redirige a la pantalla de registro de huella (futuro)
+     * Redirige a la pantalla de registro de huella
      */
     protected function afterCreate(): void
     {
-        // TODO Fase 3.2: Redirigir a componente LiveWire de enrollment
-        // $this->redirect(route('filament.resources.empleados.enroll', ['record' => $this->record]));
+        // Redirigir a página de enrollment para registrar huella
+        $this->redirect(EmpleadoResource::getUrl('enroll', ['record' => $this->record]));
     }
 }
