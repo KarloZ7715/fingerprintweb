@@ -3,14 +3,14 @@
 namespace App\Filament\Resources\EmpleadoResource\Pages;
 
 use App\Filament\Resources\EmpleadoResource;
-use Filament\Forms\Components\Wizard;
-use Filament\Forms\Components\Wizard\Step;
-use Filament\Forms\Components\Grid;
-use Filament\Forms\Components\Section;
 use Filament\Forms\Components\TextInput;
 use Filament\Forms\Components\Select;
 use Filament\Forms\Components\FileUpload;
+use Filament\Forms\Components\Placeholder;
 use Filament\Resources\Pages\CreateRecord;
+use Filament\Schemas\Components\Grid;
+use Filament\Schemas\Components\Section;
+use Filament\Schemas\Components\Wizard\Step;
 use Illuminate\Validation\ValidationException;
 
 class CreateEmpleado extends CreateRecord
@@ -135,7 +135,7 @@ class CreateEmpleado extends CreateRecord
                         ->schema([
                             Grid::make(1)
                                 ->schema([
-                                    \Filament\Forms\Components\Placeholder::make('instrucciones_huella')
+                                    Placeholder::make('instrucciones_huella')
                                         ->label('')
                                         ->content('
                                             **Pasos para registrar la huella:**
