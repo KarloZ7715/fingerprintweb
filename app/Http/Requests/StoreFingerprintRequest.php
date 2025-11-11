@@ -40,10 +40,6 @@ class StoreFingerprintRequest extends FormRequest
                 'max:299',
                 'unique:huella,numero_slot',
             ],
-            'template' => [
-                'required',
-                'string',
-            ],
             'quality_score' => [
                 'required',
                 'integer',
@@ -80,7 +76,6 @@ class StoreFingerprintRequest extends FormRequest
             'slot_id.min' => 'El slot ID debe ser mayor o igual a 0',
             'slot_id.max' => 'El slot ID debe ser menor o igual a 299',
             'slot_id.unique' => 'El slot :input ya está ocupado',
-            'template.required' => 'El template de huella es obligatorio',
             'quality_score.required' => 'El puntaje de calidad es obligatorio',
             'quality_score.min' => 'El puntaje de calidad debe ser mayor o igual a 0',
             'quality_score.max' => 'El puntaje de calidad debe ser menor o igual a 255',
@@ -98,7 +93,6 @@ class StoreFingerprintRequest extends FormRequest
         return [
             'empleado_id' => 'ID de empleado',
             'slot_id' => 'slot',
-            'template' => 'template de huella',
             'quality_score' => 'calidad',
             'admin_id' => 'ID de administrador',
             'tipo_dedo' => 'tipo de dedo',

@@ -19,7 +19,6 @@ class Huella extends Model
         'numero_slot',
         'tipo_dedo',
         'mano',
-        'template_huella',
         'empleado_id',
         'fecha_enrolamiento',
         'enrolado_por',

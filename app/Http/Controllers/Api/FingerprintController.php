@@ -43,7 +43,6 @@ class FingerprintController extends Controller
             $result = $this->fingerprintService->enrollFingerprint(
                 $validated['empleado_id'],
                 $validated['slot_id'],
-                $validated['template'],
                 $validated['quality_score'],
                 $validated['admin_id'] ?? null,
                 $validated['tipo_dedo'] ?? 'Indice',
