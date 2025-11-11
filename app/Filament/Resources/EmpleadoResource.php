@@ -43,9 +43,10 @@ class EmpleadoResource extends Resource
                                     ->label('Cédula')
                                     ->required()
                                     ->unique(ignoreRecord: true)
-                                    ->maxLength(20)
-                                    ->placeholder('Ingrese la cédula')
-                                    ->helperText('Debe ser única en el sistema'),
+                                    ->numeric()
+                                    ->minLength(6)
+                                    ->maxLength(15)
+                                    ->placeholder('1234567890'),
 
                                 Forms\Components\TextInput::make('email')
                                     ->label('Correo Electrónico')
@@ -89,16 +90,31 @@ class EmpleadoResource extends Resource
                                     ->rules(['regex:/^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/']),
                             ]),
 
-                        Forms\Components\TextInput::make('telefono')
-                            ->label('Teléfono')
-                            ->required()
-                            ->tel()
-                            ->prefix('+')
-                            ->placeholder('57 300 1234567')
-                            ->stripCharacters([' ', '-', '(', ')'])
-                            ->minLength(7)
-                            ->maxLength(15)
-                            ->helperText('Incluir código de país sin +. Ej: 57 300 1234567 (Colombia)'),
+                        Grid::make(3)
+                            ->schema([
+                                Forms\Components\TextInput::make('codigo_pais')
+                                    ->label('Código País')
+                                    ->required()
+                                    ->numeric()
+                                    ->default('57')
+                                    ->minLength(1)
+                                    ->maxLength(4)
+                                    ->prefix('+')
+                                    ->placeholder('57')
+                                    ->helperText('Colombia: 57')
+                                    ->columnSpan(1),
+
+                                Forms\Components\TextInput::make('telefono')
+                                    ->label('Número de Teléfono')
+                                    ->required()
+                                    ->tel()
+                                    ->placeholder('310 1234567')
+                                    ->mask(fn($state) => strlen(preg_replace('/\D/', '', $state ?? '')) > 10 ? null : '999 9999999')
+                                    ->stripCharacters([' ', '-', '(', ')'])
+                                    ->minLength(7)
+                                    ->maxLength(15)
+                                    ->columnSpan(2),
+                            ]),
                     ])
                     ->collapsible(),
 
@@ -172,42 +188,13 @@ class EmpleadoResource extends Resource
                     ->toggleable()
                     ->copyable(),
 
-                Tables\Columns\TextColumn::make('telefono')
+                Tables\Columns\TextColumn::make('telefono_completo')
                     ->label('Teléfono')
-                    ->searchable()
+                    ->getStateUsing(fn(Empleado $record) => $record->telefono_completo)
+                    ->searchable(['telefono'])
                     ->toggleable()
-                    ->formatStateUsing(function ($state) {
-                        if (empty($state))
-                            return $state;
-
-                        // Detectar código de país y formatear inteligentemente
-                        $length = strlen($state);
-
-                        // Colombia (57): +57 XXX XXXXXXX
-                        if (str_starts_with($state, '57') && $length == 12) {
-                            return '+' . substr($state, 0, 2) . ' ' . substr($state, 2, 3) . ' ' . substr($state, 5);
-                        }
-
-                        // USA/Canadá (1): +1 XXX XXX XXXX
-                        if (str_starts_with($state, '1') && $length == 11) {
-                            return '+' . substr($state, 0, 1) . ' ' . substr($state, 1, 3) . ' ' . substr($state, 4, 3) . ' ' . substr($state, 7);
-                        }
-
-                        // España (34), Francia (33), Italia (39): +XX XXX XXX XXX
-                        if (($length >= 11 && $length <= 12) && preg_match('/^(34|33|39)/', $state)) {
-                            return '+' . substr($state, 0, 2) . ' ' . substr($state, 2, 3) . ' ' . substr($state, 5, 3) . ' ' . substr($state, 8);
-                        }
-
-                        // México (52): +52 XXX XXX XXXX
-                        if (str_starts_with($state, '52') && $length == 12) {
-                            return '+' . substr($state, 0, 2) . ' ' . substr($state, 2, 3) . ' ' . substr($state, 5, 3) . ' ' . substr($state, 8);
-                        }
-
-                        // Formato genérico para otros países: +XX XXXXXXXXXX
-                        return '+' . substr($state, 0, 2) . ' ' . substr($state, 2);
-                    })
                     ->copyable()
-                    ->copyableState(fn($state) => $state), // Copia sin espacios, solo números
+                    ->copyableState(fn(Empleado $record) => $record->codigo_pais . $record->telefono),
 
                 Tables\Columns\TextColumn::make('estado')
                     ->label('Estado')
