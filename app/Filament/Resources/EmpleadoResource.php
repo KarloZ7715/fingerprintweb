@@ -109,8 +109,16 @@ class EmpleadoResource extends Resource
                                     ->required()
                                     ->tel()
                                     ->placeholder('310 1234567')
-                                    ->mask(fn($state) => strlen(preg_replace('/\D/', '', $state ?? '')) > 10 ? null : '999 9999999')
-                                    ->stripCharacters([' ', '-', '(', ')'])
+                                    ->formatStateUsing(function ($state) {
+                                        if (!$state)
+                                            return $state;
+                                        $cleaned = preg_replace('/\D/', '', $state);
+                                        if (strlen($cleaned) === 10) {
+                                            return substr($cleaned, 0, 3) . ' ' . substr($cleaned, 3);
+                                        }
+                                        return $cleaned;
+                                    })
+                                    ->dehydrateStateUsing(fn($state) => preg_replace('/\D/', '', $state))
                                     ->minLength(7)
                                     ->maxLength(15)
                                     ->columnSpan(2),
