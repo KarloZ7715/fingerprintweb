@@ -46,14 +46,44 @@ class FingerprintService
      */
     private int $minQualityScore;
 
-    public function __construct()
+    /**
+     * Servicio de discovery del ESP32
+     */
+    private ESP32DiscoveryService $discoveryService;
+
+    public function __construct(ESP32DiscoveryService $discoveryService)
     {
-        $this->esp32Url = config('services.esp32.fingerprint_url');
-        $this->apiToken = config('services.esp32.api_token');
-        $this->timeout = config('services.esp32.timeout', 30);
-        $this->enrollTimeout = config('services.esp32.enroll_timeout', 60);
-        $this->totalSlots = config('services.esp32.sensor.total_slots', 300);
-        $this->minQualityScore = config('services.esp32.sensor.min_quality_score', 80);
+        $this->discoveryService = $discoveryService;
+        $this->esp32Url = $this->getESP32Url();
+        $this->apiToken = null; // Por ahora sin autenticación
+        $this->timeout = config('fingerprint.sensor.timeout', 10);
+        $this->enrollTimeout = config('fingerprint.sensor.timeout', 10) * 6; // 60 segundos para enrollment
+        $this->totalSlots = config('fingerprint.sensor.capacity', 300);
+        $this->minQualityScore = config('fingerprint.enrollment.quality_threshold', 100);
+    }
+
+    /**
+     * Obtiene la URL del ESP32 usando discovery automático
+     * 
+     * @return string URL del ESP32
+     * @throws \Exception Si no se puede encontrar el ESP32
+     */
+    private function getESP32Url(): string
+    {
+        $url = $this->discoveryService->getESP32Url();
+
+        if (!$url) {
+            // Fallback al .env como última opción
+            $url = config('fingerprint.esp32_url');
+
+            if (!$url) {
+                throw new \Exception('No se pudo encontrar el ESP32. Verifica que esté conectado a la red.');
+            }
+
+            logger()->warning('[FingerprintService] Usando URL de .env como fallback', ['url' => $url]);
+        }
+
+        return rtrim($url, '/'); // Remover trailing slash
     }
 
     /**
@@ -61,7 +91,6 @@ class FingerprintService
      * 
      * @param int $empleadoId ID del empleado
      * @param int $slotId Slot asignado por ESP32 (0-299)
-     * @param string $templateBase64 Template codificado en base64
      * @param int $qualityScore Calidad de la captura (0-255)
      * @param int|null $adminId ID del administrador que registra
      * @param string $tipoDedo Tipo de dedo usado
@@ -72,7 +101,6 @@ class FingerprintService
     public function enrollFingerprint(
         int $empleadoId,
         int $slotId,
-        string $templateBase64,
         int $qualityScore,
         ?int $adminId = null,
         string $tipoDedo = 'Indice',
@@ -102,17 +130,10 @@ class FingerprintService
                 );
             }
 
-            // Decodificar template
-            $templateBinary = base64_decode($templateBase64);
-            if ($templateBinary === false) {
-                throw new \Exception('Error al decodificar template base64');
-            }
-
-            // Crear registro de huella
+            // Crear registro de huella (el template queda almacenado en el sensor AS608)
             $huella = Huella::create([
                 'empleado_id' => $empleadoId,
                 'numero_slot' => $slotId,
-                'template_huella' => $templateBinary,
                 'calidad' => $qualityScore,
                 'estado' => 'Activa',
                 'enrolado_por' => $adminId,
@@ -239,25 +260,55 @@ class FingerprintService
     }
 
     /**
+     * Obtener slots ocupados directamente del sensor AS608
+     * 
+     * Llama a ESP32 GET /fingerprint/get-used-slots
+     * Escaneo completo de 300 slots toma ~10-15 segundos
+     * 
+     * @return array Lista de slot IDs ocupados en el sensor
+     * @throws \Exception Si falla la conexión con ESP32
+     */
+    public function getSensorUsedSlots(): array
+    {
+        try {
+            // Timeout largo porque el escaneo toma 10-15 segundos
+            $response = Http::timeout(20)
+                ->get("{$this->esp32Url}/fingerprint/get-used-slots");
+
+            if (!$response->successful()) {
+                throw new \Exception('ESP32 no responde (HTTP ' . $response->status() . ')');
+            }
+
+            $data = $response->json();
+
+            Log::channel('fingerprint')->info('Slots del sensor obtenidos', [
+                'total_slots' => $data['total_slots'] ?? 0,
+                'used_slots' => $data['used_slots'] ?? 0,
+                'scan_time_ms' => $data['scan_time_ms'] ?? 0,
+            ]);
+
+            return $data['used_slot_ids'] ?? [];
+
+        } catch (\Exception $e) {
+            Log::channel('fingerprint')->error('Error al obtener slots del sensor', [
+                'error' => $e->getMessage(),
+            ]);
+
+            throw $e;
+        }
+    }
+
+    /**
      * Detectar huellas huérfanas: en sensor pero no en DB
      * 
-     * Requiere que ESP32 exponga endpoint GET /fingerprint/info
+     * Requiere que ESP32 exponga endpoint GET /fingerprint/get-used-slots
      * 
      * @return array Lista de slots huérfanos
      */
     public function findHuerfanas(): array
     {
         try {
-            // Obtener slots del sensor
-            $response = Http::timeout($this->timeout)
-                ->get("{$this->esp32Url}/fingerprint/info");
-
-            if (!$response->successful()) {
-                throw new \Exception('No se pudo conectar con ESP32');
-            }
-
-            $sensorData = $response->json();
-            $slotsEnSensor = $sensorData['used_slot_ids'] ?? [];
+            $slotsEnSensor = $this->getSensorUsedSlots();
             $slotsEnDB = $this->getUsedSlots();
 
             // Huellas en sensor pero no en DB
@@ -289,16 +340,7 @@ class FingerprintService
     public function findFantasmas(): array
     {
         try {
-            // Obtener slots del sensor
-            $response = Http::timeout($this->timeout)
-                ->get("{$this->esp32Url}/fingerprint/info");
-
-            if (!$response->successful()) {
-                throw new \Exception('No se pudo conectar con ESP32');
-            }
-
-            $sensorData = $response->json();
-            $slotsEnSensor = $sensorData['used_slot_ids'] ?? [];
+            $slotsEnSensor = $this->getSensorUsedSlots();
             $slotsEnDB = $this->getUsedSlots();
 
             // Huellas en DB pero no en sensor
