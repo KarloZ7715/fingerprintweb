@@ -243,13 +243,54 @@ class CreateEmpleado extends CreateRecord
     }
 
     /**
+     * Sobrescribir para especificar el método Livewire que el wizard llamará
+     */
+    protected function getSubmitFormLivewireMethodName(): string
+    {
+        return 'create';
+    }
+
+    public function create(bool $another = false): void
+    {
+        logger()->info('[create] Método create() llamado', [
+            'another' => $another,
+            'enrollmentState' => $this->enrollmentState,
+            'assignedSlotId' => $this->assignedSlotId,
+        ]);
+
+        try {
+            logger()->info('[create] ANTES de llamar parent::create()');
+            // Llamar al método padre que maneja todo el proceso de creación
+            parent::create($another);
+            logger()->info('[create] DESPUÉS de llamar parent::create()');
+        } catch (\Exception $e) {
+            logger()->error('[create] EXCEPCIÓN capturada', [
+                'message' => $e->getMessage(),
+                'file' => $e->getFile(),
+                'line' => $e->getLine(),
+            ]);
+            throw $e;
+        }
+    }
+
+    /**
      * Validación y preparación de datos antes de crear el empleado
      * Establece estado inicial como Pendiente_Huella para integración con sensor
      */
     protected function mutateFormDataBeforeCreate(array $data): array
     {
+        logger()->info('[mutateFormDataBeforeCreate] INICIO', [
+            'enrollmentState' => $this->enrollmentState,
+            'assignedSlotId' => $this->assignedSlotId,
+            'lastQualityScore' => $this->lastQualityScore,
+        ]);
+
         // VALIDAR QUE LA HUELLA FUE REGISTRADA (Step 3)
         if ($this->enrollmentState !== 'success') {
+            logger()->warning('[mutateFormDataBeforeCreate] Validación falló: huella no registrada', [
+                'enrollmentState' => $this->enrollmentState,
+            ]);
+
             Notification::make()
                 ->warning()
                 ->title('Huella no registrada')
@@ -262,6 +303,8 @@ class CreateEmpleado extends CreateRecord
             ]);
         }
 
+        logger()->info('[mutateFormDataBeforeCreate] Validación de huella pasó correctamente');
+
         // Validar email con @
         if (!str_contains($data['email'], '@')) {
             throw ValidationException::withMessages([
@@ -269,15 +312,17 @@ class CreateEmpleado extends CreateRecord
             ]);
         }
 
-        // Validar código de país (solo números)
-        if (!ctype_digit($data['codigo_pais'])) {
+        // Limpiar y validar código de país (solo números)
+        $data['codigo_pais'] = preg_replace('/[^0-9]/', '', $data['codigo_pais']);
+        if (empty($data['codigo_pais']) || !ctype_digit($data['codigo_pais'])) {
             throw ValidationException::withMessages([
                 'codigo_pais' => 'El código de país debe contener solo números',
             ]);
         }
 
-        // Validar teléfono (solo números después de limpiar)
-        if (!ctype_digit($data['telefono'])) {
+        // Limpiar y validar teléfono (solo números después de limpiar)
+        $data['telefono'] = preg_replace('/[^0-9]/', '', $data['telefono']);
+        if (empty($data['telefono']) || !ctype_digit($data['telefono'])) {
             throw ValidationException::withMessages([
                 'telefono' => 'El teléfono debe contener solo números',
             ]);
@@ -304,22 +349,29 @@ class CreateEmpleado extends CreateRecord
     }
 
     /**
-     * Acciones después de crear el empleado
-     * Guardar la huella registrada en el Step 3 en la base de datos
+     * Sobrescribir método del trait HasWizard
+     * Se ejecuta para crear el registro en la base de datos
+     * CRÍTICO: Este método SÍ se ejecuta con HasWizard (a diferencia de afterCreate)
      */
-    protected function afterCreate(): void
+    protected function handleRecordCreation(array $data): \Illuminate\Database\Eloquent\Model
     {
-        logger()->info('afterCreate() ejecutado', [
+        logger()->info('[handleRecordCreation] INICIO', [
             'assignedSlotId' => $this->assignedSlotId,
             'lastQualityScore' => $this->lastQualityScore,
-            'lastRegisteredTipoDedo' => $this->lastRegisteredTipoDedo,
-            'lastRegisteredMano' => $this->lastRegisteredMano,
             'enrollmentState' => $this->enrollmentState,
+        ]);
+
+        // Crear el empleado con estado Pendiente_Huella
+        $empleado = static::getModel()::create($data);
+
+        logger()->info('[handleRecordCreation] Empleado creado', [
+            'empleado_id' => $empleado->id,
+            'estado' => $empleado->estado,
         ]);
 
         // Guardar la huella SOLO si tenemos todos los datos necesarios
         if ($this->assignedSlotId !== null && $this->lastQualityScore !== null) {
-            $this->record->huellas()->create([
+            $huella = $empleado->huellas()->create([
                 'numero_slot' => $this->assignedSlotId,
                 'calidad' => $this->lastQualityScore,
                 'tipo_dedo' => $this->lastRegisteredTipoDedo ?? 'Indice',
@@ -330,22 +382,22 @@ class CreateEmpleado extends CreateRecord
             ]);
 
             // Actualizar estado del empleado a Activo (ya tiene huella)
-            $this->record->update([
-                'estado' => 'Activo',
-            ]);
+            $empleado->update(['estado' => 'Activo']);
 
-            logger()->info('✓ Huella guardada en BD después de crear empleado', [
-                'empleado_id' => $this->record->id,
+            logger()->info('[handleRecordCreation] Huella guardada correctamente', [
+                'empleado_id' => $empleado->id,
+                'huella_id' => $huella->id,
                 'numero_slot' => $this->assignedSlotId,
                 'calidad' => $this->lastQualityScore,
             ]);
         } else {
-            logger()->warning('✗ No se guardó la huella: condición no cumplida', [
+            logger()->warning('[handleRecordCreation] No se guardó la huella', [
                 'assignedSlotId_is_null' => $this->assignedSlotId === null,
                 'lastQualityScore_is_null' => $this->lastQualityScore === null,
-                'enrollmentState' => $this->enrollmentState,
             ]);
         }
+
+        return $empleado;
     }
 
     /**
