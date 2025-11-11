@@ -37,9 +37,36 @@ Route::get('/prueba', function () {
 use App\Http\Controllers\Api\AlarmaController;
 use App\Http\Controllers\Api\EventoController;
 
-Route::get('/alarma/{id}/estado', [AlarmaController::class, 'show']);
-Route::get('/alarma/{id}/activar', [AlarmaController::class, 'activar']);
-Route::get('/alarma/{id}/desactivar', [AlarmaController::class, 'desactivar']);
-Route::get('/eventos', [EventoController::class, 'index']);
+/*
+|--------------------------------------------------------------------------
+| Alarm API Routes
+|--------------------------------------------------------------------------
+|
+| Endpoints para gestión de alarmas y sensor PIR
+|
+*/
 
+// Consulta rápida del estado de una alarma (optimizado para polling frecuente)
+Route::get('/alarma/{id}/estado', [AlarmaController::class, 'getEstado']);
+
+// Obtener información completa de una alarma específica
+Route::get('/alarma/{id}', [AlarmaController::class, 'show']);
+
+// Obtener todas las alarmas en estado "En Espera"
+Route::get('/alarmas/en-espera', [AlarmaController::class, 'getAlarmasEnEspera']);
+
+// Activar alarma manualmente (transición directa a Activa)
+Route::get('/alarma/{id}/activar', [AlarmaController::class, 'activar']);
+
+// Poner alarma en estado de espera (esperando señal del sensor PIR)
+Route::get('/alarma/{id}/en-espera', [AlarmaController::class, 'ponerEnEspera']);
+
+// Activar alarma cuando el sensor PIR detecta movimiento (En Espera -> Activa)
+Route::post('/alarma/{id}/activar-por-movimiento', [AlarmaController::class, 'activarPorMovimiento']);
+
+// Desactivar alarma (cualquier estado -> Apagada)
+Route::get('/alarma/{id}/desactivar', [AlarmaController::class, 'desactivar']);
+
+// Eventos
+Route::get('/eventos', [EventoController::class, 'index']);
 Route::post('/evento', [EventoController::class, 'store']);
