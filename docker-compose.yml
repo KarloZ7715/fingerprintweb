@@ -20,7 +20,7 @@ services:
     container_name: fingerprintweb-nginx
     restart: unless-stopped
     ports:
-      - "8000:80"
+      - "0.0.0.0:8000:80"
     volumes:
       - ./:/var/www
       - ./docker/nginx:/etc/nginx/conf.d
