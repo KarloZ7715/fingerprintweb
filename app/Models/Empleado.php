@@ -20,6 +20,7 @@ class Empleado extends Model
         'segundo_nombre',
         'primer_apellido',
         'segundo_apellido',
+        'codigo_pais',
         'telefono',
         'email',
         'estado',
@@ -76,6 +77,14 @@ class Empleado extends Model
             $this->primer_apellido . ' ' .
             ($this->segundo_apellido ?? '')
         );
+    }
+
+    /**
+     * Obtener teléfono completo con código de país
+     */
+    public function getTelefonoCompletoAttribute(): string
+    {
+        return '+' . $this->codigo_pais . ' ' . $this->telefono;
     }
 
     /**
