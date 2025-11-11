@@ -236,9 +236,8 @@ class FingerprintService
      */
     public function getUsedSlots(): array
     {
-        return Huella::where('estado', 'Activa')
-            ->pluck('numero_slot')
-            ->toArray();
+        // Obtener TODOS los slots ocupados en BD, sin importar el estado
+        return Huella::pluck('numero_slot')->toArray();
     }
 
     /**
