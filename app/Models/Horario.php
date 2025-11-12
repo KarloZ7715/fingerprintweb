@@ -55,6 +55,14 @@ class Horario extends Model
     }
 
     /**
+     * Relación con Asistencias
+     */
+    public function asistencias(): HasMany
+    {
+        return $this->hasMany(Asistencia::class, 'horario_id');
+    }
+
+    /**
      * Relación con Sucursal
      */
     public function sucursal(): BelongsTo
