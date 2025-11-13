@@ -17,8 +17,11 @@ class ContactoEmergenciaInfolist
                     ->placeholder('-'),
                 TextEntry::make('correo')
                     ->placeholder('-'),
-                TextEntry::make('sucursal_id')
-                    ->numeric()
+                TextEntry::make('usario_tele')
+                    ->placeholder('-')
+                    ->label('Usuario de Telegram'),
+                TextEntry::make('sucursal.nombre')
+                    ->label('Sucursal asignada')
                     ->placeholder('-'),
                 TextEntry::make('created_at')
                     ->dateTime()

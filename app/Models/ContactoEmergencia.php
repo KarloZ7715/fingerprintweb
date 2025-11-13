@@ -12,6 +12,7 @@ class ContactoEmergencia extends Model
         'nombre_completo',
         'telefono',
         'correo',
+        'usario_tele',
         'sucursal_id',
     ];
 

@@ -21,6 +21,8 @@ class ContactoEmergenciasTable
                     ->searchable(),
                 TextColumn::make('correo')
                     ->searchable(),
+                     TextColumn::make('usario_tele')
+                    ->searchable(),
                TextColumn::make('sucursal.nombre')
                     ->label('Sucursal asignada')
                     ->sortable()

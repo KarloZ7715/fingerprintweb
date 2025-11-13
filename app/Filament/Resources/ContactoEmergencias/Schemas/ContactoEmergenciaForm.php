@@ -19,10 +19,13 @@ class ContactoEmergenciaForm
                     ->default(null),
                 TextInput::make('correo')
                     ->default(null),
-                    Select::make('sucursal_id')
-    ->relationship('sucursal', 'nombre')
-    ->label('Sucursal asignada')
-    ->required(),
+                TextInput::make('usario_tele')
+                    ->default(null)
+                     ->label('Usuario de Telegram'),
+                Select::make('sucursal_id')
+                    ->relationship('sucursal', 'nombre')
+                    ->label('Sucursal asignada')
+                    ->required(),
             ]);
     }
 }
