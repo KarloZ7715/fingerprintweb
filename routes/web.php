@@ -8,6 +8,7 @@ Route::get('/', function () {
 Route::get('/prueba', function () {
     return 'funciona la api!';
 });
+
 use App\Http\Controllers\Api\AlarmaController;
 use App\Http\Controllers\Api\EventoController;
 
@@ -20,3 +21,8 @@ Route::post('/evento', [EventoController::class, 'store']);
 Route::get('/prueba', function () {
     return 'funciona la api!';
 });
+
+use App\Http\Controllers\Api\TelegramController;
+
+
+Route::get('/telegram', [TelegramController::class, 'index']);

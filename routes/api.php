@@ -36,6 +36,7 @@ Route::get('/prueba', function () {
 });
 use App\Http\Controllers\Api\AlarmaController;
 use App\Http\Controllers\Api\EventoController;
+use App\Http\Controllers\Api\TelegramController;
 
 /*
 |--------------------------------------------------------------------------
@@ -70,3 +71,7 @@ Route::get('/alarma/{id}/desactivar', [AlarmaController::class, 'desactivar']);
 // Eventos
 Route::get('/eventos', [EventoController::class, 'index']);
 Route::post('/evento', [EventoController::class, 'store']);
+
+//llamada de telegram
+
+Route::get('/llamada/{alarma_id}/activar', [TelegramController::class, 'llamar']);
