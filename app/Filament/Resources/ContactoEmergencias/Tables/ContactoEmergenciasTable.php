@@ -22,7 +22,8 @@ class ContactoEmergenciasTable
                 TextColumn::make('correo')
                     ->searchable(),
                      TextColumn::make('usario_tele')
-                    ->searchable(),
+                    ->searchable()
+                    ->label('Usuario de Telegram'),
                TextColumn::make('sucursal.nombre')
                     ->label('Sucursal asignada')
                     ->sortable()
