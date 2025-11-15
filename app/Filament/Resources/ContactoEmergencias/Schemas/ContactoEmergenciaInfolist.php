@@ -20,6 +20,9 @@ class ContactoEmergenciaInfolist
                 TextEntry::make('usario_tele')
                     ->placeholder('-')
                     ->label('Usuario de Telegram'),
+                TextEntry::make('prioridad')
+                    ->placeholder('-'),
+
                 TextEntry::make('sucursal.nombre')
                     ->label('Sucursal asignada')
                     ->placeholder('-'),

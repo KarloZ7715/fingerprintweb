@@ -21,7 +21,14 @@ class ContactoEmergenciaForm
                     ->default(null),
                 TextInput::make('usario_tele')
                     ->default(null)
-                     ->label('Usuario de Telegram'),
+                    ->label('Usuario de Telegram'),
+                Select::make('prioridad')
+                    ->options([
+                        'Alta' => 'Alta',
+                        'Media' => 'Media',
+                        'Baja' => 'Baja',
+                    ])
+                    ->required(),
                 Select::make('sucursal_id')
                     ->relationship('sucursal', 'nombre')
                     ->label('Sucursal asignada')

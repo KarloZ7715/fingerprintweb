@@ -14,6 +14,7 @@ class ContactoEmergencia extends Model
         'correo',
         'usario_tele',
         'sucursal_id',
+        'prioridad',
     ];
 
     public function sucursal()
