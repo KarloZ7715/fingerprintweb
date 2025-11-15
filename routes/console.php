@@ -26,3 +26,20 @@ Schedule::job(new DetectPendingEmployees())
     ->dailyAt('08:00')
     ->timezone('America/Bogota')
     ->withoutOverlapping();
+
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+// Scheduled Tasks - Sistema de Asistencias
+// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+// 3. Detectar ausencias: 6:00 PM todos los días
+// Marca como ausentes a empleados que no registraron entrada
+Schedule::job(new \App\Jobs\DetectarAusenciasDiarias())
+    ->dailyAt('18:00')
+    ->timezone('America/Bogota')
+    ->withoutOverlapping()
+    ->onSuccess(function () {
+        \Illuminate\Support\Facades\Log::info('Job DetectarAusenciasDiarias ejecutado exitosamente');
+    })
+    ->onFailure(function () {
+        \Illuminate\Support\Facades\Log::error('Job DetectarAusenciasDiarias falló');
+    });
