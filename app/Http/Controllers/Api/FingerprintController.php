@@ -6,6 +6,7 @@ use App\Http\Controllers\Controller;
 use App\Http\Requests\StoreFingerprintRequest;
 use App\Models\Empleado;
 use App\Models\Huella;
+use App\Services\AsistenciaService;
 use App\Services\FingerprintService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
@@ -19,13 +20,29 @@ use Illuminate\Support\Facades\Log;
  */
 class FingerprintController extends Controller
 {
+    private FingerprintService $fingerprintService;
+    private AsistenciaService $asistenciaService;
+
     /**
      * Constructor con inyección de dependencias
      */
     public function __construct(
-        private FingerprintService $fingerprintService
+        AsistenciaService $asistenciaService
     ) {
+        $this->asistenciaService = $asistenciaService;
     }
+
+    /**
+     * Obtener FingerprintService solo cuando se necesita
+     */
+    private function getFingerprintService(): FingerprintService
+    {
+        if (!isset($this->fingerprintService)) {
+            $this->fingerprintService = app(FingerprintService::class);
+        }
+        return $this->fingerprintService;
+    }
+
     /**
      * Almacenar huella registrada por ESP32
      * 
@@ -40,7 +57,7 @@ class FingerprintController extends Controller
             $validated = $request->validated();
 
             // Delegar lógica de negocio al service
-            $result = $this->fingerprintService->enrollFingerprint(
+            $result = $this->getFingerprintService()->enrollFingerprint(
                 $validated['empleado_id'],
                 $validated['slot_id'],
                 $validated['quality_score'],
@@ -86,7 +103,7 @@ class FingerprintController extends Controller
     public function getUsedSlots(): JsonResponse
     {
         try {
-            $usedSlots = $this->fingerprintService->getUsedSlots();
+            $usedSlots = $this->getFingerprintService()->getUsedSlots();
 
             return response()->json([
                 'success' => true,
@@ -120,7 +137,7 @@ class FingerprintController extends Controller
     {
         try {
             // Verificar que el slot existe en DB
-            if (!$this->fingerprintService->isSlotOccupied($slotId)) {
+            if (!$this->getFingerprintService()->isSlotOccupied($slotId)) {
                 return response()->json([
                     'success' => false,
                     'message' => 'Slot no encontrado en base de datos',
@@ -128,7 +145,7 @@ class FingerprintController extends Controller
             }
 
             // Delegar rollback al service
-            $success = $this->fingerprintService->rollbackEnrollment($slotId);
+            $success = $this->getFingerprintService()->rollbackEnrollment($slotId);
 
             if (!$success) {
                 return response()->json([
@@ -161,7 +178,7 @@ class FingerprintController extends Controller
     }
 
     /**
-     * Identificar empleado por huella
+     * Identificar empleado por huella y registrar asistencia automáticamente
      * 
      * POST /api/fingerprint/identify
      * 
@@ -191,6 +208,33 @@ class FingerprintController extends Controller
 
             $empleado = $huella->empleado;
 
+            // Registrar asistencia automáticamente
+            try {
+                $asistencia = $this->asistenciaService->registrarAsistencia(
+                    empleadoId: $empleado->id,
+                    tipo: 'Entrada',
+                    huellaId: $huella->id,
+                    metodoRegistro: 'Huella'
+                );
+
+                Log::channel('fingerprint')->info('Asistencia registrada automáticamente', [
+                    'empleado_id' => $empleado->id,
+                    'slot_id' => $validated['slot_id'],
+                    'asistencia_id' => $asistencia->id,
+                    'estado' => $asistencia->estado,
+                    'hora_entrada' => $asistencia->hora_entrada,
+                ]);
+
+            } catch (\Exception $e) {
+                // Si falla el registro de asistencia, loguear pero continuar
+                // (podría ser asistencia duplicada del mismo día)
+                Log::channel('fingerprint')->warning('No se pudo registrar asistencia', [
+                    'empleado_id' => $empleado->id,
+                    'slot_id' => $validated['slot_id'],
+                    'error' => $e->getMessage(),
+                ]);
+            }
+
             Log::channel('fingerprint')->info('Empleado identificado', [
                 'empleado_id' => $empleado->id,
                 'slot_id' => $validated['slot_id'],
@@ -199,7 +243,7 @@ class FingerprintController extends Controller
 
             return response()->json([
                 'success' => true,
-                'message' => 'Empleado identificado',
+                'message' => 'Empleado identificado y asistencia registrada',
                 'data' => [
                     'empleado_id' => $empleado->id,
                     'cedula' => $empleado->cedula,
@@ -214,6 +258,12 @@ class FingerprintController extends Controller
                         'nombre' => $empleado->horario->nombre ?? null,
                     ] : null,
                     'confidence' => $validated['confidence'],
+                    'asistencia' => isset($asistencia) ? [
+                        'id' => $asistencia->id,
+                        'estado' => $asistencia->estado,
+                        'hora_entrada' => $asistencia->hora_entrada,
+                        'minutos_retraso' => $asistencia->minutos_retraso,
+                    ] : null,
                 ],
             ]);
 
@@ -240,8 +290,8 @@ class FingerprintController extends Controller
     public function getAvailableSlot(): JsonResponse
     {
         try {
-            $availableSlot = $this->fingerprintService->getAvailableSlot();
-            $usedSlots = $this->fingerprintService->getUsedSlots();
+            $availableSlot = $this->getFingerprintService()->getAvailableSlot();
+            $usedSlots = $this->getFingerprintService()->getUsedSlots();
 
             if ($availableSlot === null) {
                 return response()->json([

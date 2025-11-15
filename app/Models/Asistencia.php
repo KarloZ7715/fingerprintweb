@@ -93,4 +93,46 @@ class Asistencia extends Model
     {
         return $query->whereDate('fecha', $fecha);
     }
+
+    /**
+     * Accesor para nombre completo del empleado
+     */
+    public function getNombreEmpleadoAttribute(): string
+    {
+        return $this->empleado ? 
+            "{$this->empleado->primer_nombre} {$this->empleado->primer_apellido}" : 
+            'N/A';
+    }
+
+    /**
+     * Accessor: hora_entrada (alias de hora_registro)
+     */
+    public function getHoraEntradaAttribute()
+    {
+        return $this->hora_registro ? \Carbon\Carbon::parse($this->hora_registro)->format('H:i:s') : null;
+    }
+
+    /**
+     * Accessor: minutos_retraso (alias de minutos_diferencia absoluto)
+     */
+    public function getMinutosRetrasoAttribute()
+    {
+        return abs($this->minutos_diferencia ?? 0);
+    }
+
+    /**
+     * Accessor: justificado (alias de justificada)
+     */
+    public function getJustificadoAttribute()
+    {
+        return (bool) $this->attributes['justificada'];
+    }
+
+    /**
+     * Accessor: justificacion (alias de motivo_justificacion)
+     */
+    public function getJustificacionAttribute()
+    {
+        return $this->motivo_justificacion;
+    }
 }
