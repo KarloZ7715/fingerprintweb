@@ -29,9 +29,8 @@ class AsistenciaDiariaResource extends Resource
     // Mostrar registros de HOY y orden descendente por id
     public static function getEloquentQuery(): Builder
     {
-        return parent::getEloquentQuery()
-            ->whereDate('fecha', Carbon::today())
-            ->orderBy('id', 'desc');
+      return parent::getEloquentQuery()->orderBy('id', 'desc');
+
     }
 
 

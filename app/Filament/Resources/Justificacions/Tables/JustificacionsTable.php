@@ -76,19 +76,24 @@ class JustificacionsTable
                             ? $query->whereDate('created_at', $data['created_at'])
                             : $query;
                     }),
-                // Filtrar por estado (en femenino, ¡concuerda con tu ENUM!)
-                SelectFilter::make('estado')
-                    ->label('Estado')
-                    ->options([
-                        'pendiente' => 'Pendiente',
-                        'aprobada' => 'Aprobada',
-                        'rechazada' => 'Rechazada',
-                    ])
-                    ->query(function ($query, $value) {
-                        return !empty($value)
-                            ? $query->where('estado', $value)
-                            : $query;
-                    }),
+                SelectFilter::make('tipo')
+    ->label('Tipo')
+    ->options([
+        'retraso' => 'Retraso',
+        'ausencia' => 'Ausencia',
+        'salida_temprana' => 'Salida Temprana',
+        'entro_tarde' => 'Entró Tarde',
+        'entro_temprano' => 'Entró Temprano',
+        'salio_tarde' => 'Salió Tarde',
+        'salio_temprano' => 'Salió Temprano',
+        'falta' => 'Falta',
+    ])
+    ->default('falta')
+    ->query(function ($query, $value) {
+        return !empty($value)
+            ? $query->where('tipo', $value)
+            : $query;
+    }),
             ])
             ->recordActions([
                 ViewAction::make(),

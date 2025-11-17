@@ -59,15 +59,20 @@ class AsistenciaDiariasTable
                 // Filtrar solo los registros de hoy
                 Filter::make('today')
                     ->label('Solo Hoy')
-                    ->query(fn (Builder $query) =>
+                    ->query(
+                        fn(Builder $query) =>
                         $query->whereDate('fecha', Carbon::today())
                     ),
                 // Filtrar por fecha personalizada
                 Filter::make('fecha')
                     ->form([
-                        DatePicker::make('fecha')->label('Por Fecha'),
+                        DatePicker::make('fecha')
+                            ->label('Por Fecha')
+                            ->displayFormat('d/m/Y')  // Formato visual
+                            ->format('Y-m-d'),         // Formato para la BD
                     ])
-                    ->query(fn (Builder $query, $data) =>
+                    ->query(
+                        fn(Builder $query, $data) =>
                         $data['fecha']
                             ? $query->whereDate('fecha', $data['fecha'])
                             : $query
@@ -78,9 +83,10 @@ class AsistenciaDiariasTable
                     ->form([
                         \Filament\Forms\Components\TextInput::make('cedula')->label('Cédula'),
                     ])
-                    ->query(fn (Builder $query, $data) =>
+                    ->query(
+                        fn(Builder $query, $data) =>
                         $data['cedula']
-                            ? $query->whereHas('empleado', fn ($q) => $q->where('cedula', $data['cedula']))
+                            ? $query->whereHas('empleado', fn($q) => $q->where('cedula', $data['cedula']))
                             : $query
                     ),
                 // Filtrar por estado de la asistencia
@@ -91,7 +97,8 @@ class AsistenciaDiariasTable
                         'Ausente' => 'Ausente',
                         'Justificado' => 'Justificado',
                     ])
-                    ->query(fn (Builder $query, $value) =>
+                    ->query(
+                        fn(Builder $query, $value) =>
                         $value
                             ? $query->where('estado', $value)
                             : $query
