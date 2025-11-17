@@ -15,6 +15,7 @@ class Administrador extends Authenticatable implements FilamentUser, HasName
     protected $table = 'administrador';
 
     protected $fillable = [
+        'id',
         'cedula',
         'primer_nombre',
         'primer_apellido',

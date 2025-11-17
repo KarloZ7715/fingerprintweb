@@ -3,6 +3,7 @@
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FingerprintController;
 
+
 /*
 |--------------------------------------------------------------------------
 | Fingerprint API Routes
@@ -34,6 +35,7 @@ Route::get('/prueba', function () {
         'timestamp' => now()->toIso8601String(),
     ]);
 });
+
 use App\Http\Controllers\Api\AlarmaController;
 use App\Http\Controllers\Api\EventoController;
 use App\Http\Controllers\Api\TelegramController;
@@ -75,3 +77,7 @@ Route::post('/evento', [EventoController::class, 'store']);
 //llamada de telegram
 
 Route::get('/llamada/{alarma_id}/activar', [TelegramController::class, 'llamar']);
+
+use App\Http\Controllers\Api\AsistenciaDiariaController;
+
+Route::get('/registroasistencia/{huella_id}', [AsistenciaDiariaController::class, 'store']);

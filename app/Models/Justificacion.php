@@ -9,7 +9,6 @@ class Justificacion extends Model
 {
     protected $table = 'justificacion';
     protected $fillable = [
-        'asistencia_diaria_id',
         'empleado_id',
         'tipo',
         'motivo',
@@ -23,7 +22,11 @@ class Justificacion extends Model
     {
         return $this->belongsTo(AsistenciaDiaria::class);
     }
-
+    // Relación al Administrador que aprobó
+public function administrador()
+{
+    return $this->belongsTo(Administrador::class, 'aprobado_por');
+}
     // Relación a Empleado
     public function empleado(): BelongsTo
     {
