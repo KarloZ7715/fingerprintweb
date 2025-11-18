@@ -89,20 +89,8 @@ class AsistenciaDiariasTable
                             ? $query->whereHas('empleado', fn($q) => $q->where('cedula', $data['cedula']))
                             : $query
                     ),
-                // Filtrar por estado de la asistencia
-                SelectFilter::make('estado')
-                    ->label('Estado')
-                    ->options([
-                        'Presente' => 'Presente',
-                        'Ausente' => 'Ausente',
-                        'Justificado' => 'Justificado',
-                    ])
-                    ->query(
-                        fn(Builder $query, $value) =>
-                        $value
-                            ? $query->where('estado', $value)
-                            : $query
-                    ),
+           
+             
             ])
             ->recordActions([
                 ViewAction::make(),

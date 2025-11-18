@@ -32,6 +32,20 @@ public static function table(Table $table): Table
         ->defaultSort('id', 'desc');
 }
 
+public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+{
+    $today = now()->toDateString();
+    return parent::getEloquentQuery()
+        ->orderByRaw("
+            CASE
+                WHEN estado = 'pendiente' AND tipo = 'falta' AND DATE(created_at) = ? THEN 1
+                WHEN estado = 'pendiente' AND tipo = 'falta' THEN 2
+                WHEN estado = 'pendiente' THEN 3
+                ELSE 4
+            END ASC,
+            created_at DESC
+        ", [$today]);
+}
     public static function getRelations(): array
     {
         return [
