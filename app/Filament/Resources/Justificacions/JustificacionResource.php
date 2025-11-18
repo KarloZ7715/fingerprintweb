@@ -16,27 +16,29 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 
 use Filament\Schemas\Schema;
+use UnitEnum;
 
 class JustificacionResource extends Resource
 {
     protected static ?string $model = Justificacion::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Personal';
+    protected static ?int $navigationSort = 1;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedDocument;
 
     protected static ?string $recordTitleAttribute = 'id';
 
-    
-public static function table(Table $table): Table
-{
-    return JustificacionsTable::configure($table)
-        ->defaultSort('id', 'desc');
-}
 
-public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
-{
-    $today = now()->toDateString();
-    return parent::getEloquentQuery()
-        ->orderByRaw("
+    public static function table(Table $table): Table
+    {
+        return JustificacionsTable::configure($table)
+            ->defaultSort('id', 'desc');
+    }
+
+    public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
+    {
+        $today = now()->toDateString();
+        return parent::getEloquentQuery()
+            ->orderByRaw("
             CASE
                 WHEN estado = 'pendiente' AND tipo = 'falta' AND DATE(created_at) = ? THEN 1
                 WHEN estado = 'pendiente' AND tipo = 'falta' THEN 2
@@ -45,7 +47,7 @@ public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
             END ASC,
             created_at DESC
         ", [$today]);
-}
+    }
     public static function getRelations(): array
     {
         return [

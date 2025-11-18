@@ -17,13 +17,14 @@ use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
 use Illuminate\Database\Eloquent\Builder;
 use Carbon\Carbon;
-
+use UnitEnum;
 class AsistenciaDiariaResource extends Resource
 {
     protected static ?string $model = AsistenciaDiaria::class;
 
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
-
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedHandRaised;
+    protected static string|UnitEnum|null $navigationGroup = 'Gestión de Personal';
+    protected static ?int $navigationSort = 0;
     protected static ?string $recordTitleAttribute = 'id';
 
     // Mostrar registros de HOY y orden descendente por id

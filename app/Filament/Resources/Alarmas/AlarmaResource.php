@@ -15,12 +15,14 @@ use Filament\Resources\Resource;
 use Filament\Schemas\Schema;
 use Filament\Support\Icons\Heroicon;
 use Filament\Tables\Table;
+use UnitEnum;
 
 class AlarmaResource extends Resource
 {
     protected static ?string $model = Alarma::class;
-
-    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedRectangleStack;
+protected static string|UnitEnum|null $navigationGroup = 'Gestión de Alarmas';
+protected static ?int $navigationSort = 1;
+    protected static string|BackedEnum|null $navigationIcon = Heroicon::OutlinedMegaphone   ;
 
     protected static ?string $recordTitleAttribute = 'id';
 
