@@ -59,16 +59,6 @@ class Empleado extends Model
     }
 
     /**
-     * Relación con Huella (primera activa)
-     */
-    public function huella(): HasOne
-    {
-        return $this->hasOne(Huella::class, 'empleado_id')
-            ->where('estado', 'Activa')
-            ->latestOfMany();
-    }
-
-    /**
      * Relación con Asistencias
      */
     public function asistencias(): HasMany
