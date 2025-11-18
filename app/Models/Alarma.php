@@ -16,6 +16,7 @@ class Alarma extends Model
         'h_encendido',
         'h_apagado',
         'sucursal_id',
+        'modo_control',
         'updated_at'
     ];
 

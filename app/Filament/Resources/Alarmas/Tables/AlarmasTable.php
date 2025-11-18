@@ -10,6 +10,7 @@ use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Notifications\Notification;
 use Filament\Actions\Action;
+use Filament\Tables\Columns\ToggleColumn;
 use App\Models\Evento;
 use Carbon\Carbon;
 
@@ -36,6 +37,11 @@ class AlarmasTable
                         }
                         return $state;
                     }),
+                TextColumn::make('modo_control')
+                    ->label('Modo')
+                    ->badge()
+                    ->color(fn ($state) => $state === 'manual' ? 'warning' : 'success')
+                    ->formatStateUsing(fn ($state) => $state === 'manual' ? 'Manual' : 'Automático'),
                 TextColumn::make('duracion')
                     ->numeric()
                     ->sortable()
@@ -59,12 +65,34 @@ class AlarmasTable
 
             ->recordActions([
                 EditAction::make(),
-                // Acción: Apagar (solo si está En Espera o Activa)
+                // Acción: Cambiar entre modo auto/manual
+                Action::make('cambiar_modo_control')
+                    ->label(fn ($record) => $record->modo_control === 'manual' ? 'Cambiar a automático' : 'Cambiar a manual')
+                    ->icon(fn ($record) => $record->modo_control === 'manual' ? 'heroicon-o-cog' : 'heroicon-o-user')
+                    ->color('secondary')
+                    ->requiresConfirmation()
+                    ->modalHeading(fn ($record) => $record->modo_control === 'manual'
+                        ? '¿Desea cambiar el modo de esta alarma a Automático?' 
+                        : '¿Desea cambiar el modo de esta alarma a Manual?')
+                    ->modalDescription(fn ($record) => $record->modo_control === 'manual'
+                        ? 'Esto permitirá que el sistema cambie el estado automáticamente según el horario.' 
+                        : 'Esto bloqueará el estado y solo lo podrá cambiar manualmente.')
+                    ->action(function ($record) {
+                        $record->modo_control = $record->modo_control === 'manual' ? 'auto' : 'manual';
+                        $record->save();
+
+                        Notification::make()
+                            ->info()
+                            ->title($record->modo_control === 'manual' ? 'Modo manual activado' : 'Modo automático activado')
+                            ->send();
+                    }),
+
+                // Solo muestra las acciones manuales si el modo de control es manual
                 Action::make('apagar')
                     ->label('Apagar')
                     ->color('danger')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => in_array($record->estado, ['En Espera', 'Activa']))
+                    ->visible(fn ($record) => $record->modo_control === 'manual' && in_array($record->estado, ['En Espera', 'Activa']))
                     ->modalHeading('¿Desea apagar la alarma manualmente?')
                     ->action(function ($record) {
                         $record->estado = 'Apagada';
@@ -84,12 +112,11 @@ class AlarmasTable
                             ->send();
                     }),
 
-                // Acción: Poner en espera (solo si está Apagada o Activa)
                 Action::make('en_espera')
                     ->label('Esperar')
                     ->color('info')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => in_array($record->estado, ['Apagada', 'Activa']))
+                    ->visible(fn ($record) => $record->modo_control === 'manual' && in_array($record->estado, ['Apagada', 'Activa']))
                     ->modalHeading('¿Desea poner la alarma en espera?')
                     ->action(function ($record) {
                         $record->estado = 'En Espera';
@@ -109,12 +136,11 @@ class AlarmasTable
                             ->send();
                     }),
 
-                // Acción: Activar (solo si está En Espera o Apagada)
                 Action::make('activar')
                     ->label('Activar')
                     ->color('success')
                     ->requiresConfirmation()
-                    ->visible(fn ($record) => in_array($record->estado, ['En Espera', 'Apagada']))
+                    ->visible(fn ($record) => $record->modo_control === 'manual' && in_array($record->estado, ['En Espera', 'Apagada']))
                     ->modalHeading('¿Desea activar la alarma?')
                     ->action(function ($record) {
                         $record->estado = 'Activa';
@@ -133,7 +159,6 @@ class AlarmasTable
                             ->title('Alarma activada manualmente')
                             ->send();
                     }),
-
             ])
             ->toolbarActions([
                 BulkActionGroup::make([
