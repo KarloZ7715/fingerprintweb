@@ -28,8 +28,8 @@ class SucursalResource extends Resource
     protected static ?string $navigationLabel = 'Sucursales';
     protected static ?string $pluralModelLabel = 'Sucursales';
     protected static ?string $modelLabel = 'Sucursal';
-    protected static UnitEnum|string|null $navigationGroup = 'Gestión de Personal';
-    protected static ?int $navigationSort = 3;
+    protected static UnitEnum|string|null $navigationGroup = 'Configuracion';
+    protected static ?int $navigationSort = 2;
 
     public static function form(Schema $schema): Schema
     {
