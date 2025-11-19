@@ -5,6 +5,7 @@ namespace App\Models;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class Sucursal extends Model
 {
@@ -15,16 +16,23 @@ class Sucursal extends Model
     protected $fillable = [
         'nombre',
         'direccion',
-        'telefono',
-        'email',
-        'activo',
+        'administrador_id',
+        'created_at',
+        'updated_at',
     ];
 
     protected $casts = [
-        'activo' => 'boolean',
         'created_at' => 'datetime',
         'updated_at' => 'datetime',
     ];
+
+    /**
+     * Relación con Administrador
+     */
+    public function administrador(): BelongsTo
+    {
+        return $this->belongsTo(Administrador::class, 'administrador_id');
+    }
 
     /**
      * Relación con Empleados
@@ -43,10 +51,18 @@ class Sucursal extends Model
     }
 
     /**
+     * Accessor para obtener nombre del administrador
+     */
+    public function getAdministradorNombreAttribute(): string
+    {
+        return $this->administrador ? $this->administrador->getFilamentName() : 'Sin asignar';
+    }
+
+    /**
      * Scope para sucursales activas
      */
     public function scopeActivo($query)
     {
-        return $query->where('activo', true);
+        return $query->whereNotNull('administrador_id');
     }
 }
