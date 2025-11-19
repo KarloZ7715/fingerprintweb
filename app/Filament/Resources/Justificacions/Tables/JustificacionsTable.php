@@ -6,16 +6,13 @@ use Filament\Actions\BulkActionGroup;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
 use Filament\Actions\EditAction;
-use Filament\Actions\ViewAction;
 use Filament\Forms\Components\Textarea;
 use Filament\Forms\Components\DatePicker;
 use Filament\Forms\Components\TextInput;
 use Illuminate\Support\Facades\Auth;
 use App\Models\Administrador;
-use App\Models\AsistenciaDiaria;
 use Carbon\Carbon;
 use Filament\Tables\Filters\Filter;
-use Filament\Tables\Filters\SelectFilter;
 use Filament\Actions\Action;
 
 class JustificacionsTable
@@ -23,41 +20,25 @@ class JustificacionsTable
     public static function configure(Table $table): Table
     {
         return $table
+            // Solo columnas esenciales en la tabla
             ->columns([
-               TextColumn::make('created_at')
-                ->label('Fecha de registro')
+                TextColumn::make('created_at')
+                    ->label('Fecha registro')
                     ->dateTime()
                     ->sortable(),
-                // Empleado: nombre, apellido y cédula
                 TextColumn::make('empleado.primer_nombre')
                     ->label('Nombre')
                     ->searchable(),
-                TextColumn::make('empleado.primer_apellido')
+                     TextColumn::make('empleado.primer_apellido')
                     ->label('Apellido')
                     ->searchable(),
                 TextColumn::make('empleado.cedula')
                     ->label('Cédula')
                     ->searchable(),
-
-                TextColumn::make('tipo')
-                    ->badge(),
-                TextColumn::make('estado')
-                    ->badge(),
-                // Mostrar nombre del administrador (aprobado_por)
-              
-                           TextColumn::make('motivo')
-                    ->badge(),
-                      TextColumn::make('administrador.primer_nombre')
-                    ->label('Aprobado por')
-                    ->sortable()
-                    ->searchable(),
-                TextColumn::make('fecha_aprobacion')
-                    ->dateTime()
-                    ->sortable(),
-            
+                             TextColumn::make('tipo')->badge(),
+                TextColumn::make('estado')->badge(),
             ])
             ->filters([
-                // Buscar por cédula de empleado
                 Filter::make('cedula')
                     ->form([
                         TextInput::make('cedula')->label('Cédula empleado'),
@@ -67,9 +48,6 @@ class JustificacionsTable
                             ? $query->whereHas('empleado', fn($q) => $q->where('cedula', $data['cedula']))
                             : $query;
                     }),
-
-                    
-                // Filtrar por fecha de creación
                 Filter::make('created_at')
                     ->form([
                         DatePicker::make('created_at')->label('Fecha de creación'),
@@ -79,45 +57,48 @@ class JustificacionsTable
                             ? $query->whereDate('created_at', $data['created_at'])
                             : $query;
                     }),
-           
             ])
             ->recordActions([
-                ViewAction::make(),
-                EditAction::make(),
-                // Acción: aprobar
+                // Acción: modal con todos los detalles
+              Action::make('Ver detalles')
+    ->modalHeading('Detalles de la justificación')
+    ->modalContent(fn($record) => view('filament.justificacion-detalle', ['record' => $record])),
+
+                // Acción: aprobar con motivo opcional
                 Action::make('Aprobar')
                     ->color('success')
                     ->visible(fn($record) => $record->estado === 'pendiente')
-                    ->action(function ($record) {
-                        $adminId = Auth::id(); // Usar tu modelo Admin
+                    ->modalHeading('Motivo de aprobación')
+                    ->modalSubmitActionLabel('Aprobar')
+                    ->form([
+                        Textarea::make('motivo')
+                            ->label('Motivo de la aprobación')
+                    ])
+                    ->action(function ($record, $data) {
+                        $adminId = Auth::id();
                         $record->estado = 'aprobada';
                         $record->aprobado_por = $adminId;
+                        $record->motivo = $data['motivo'] ?? null;
                         $record->fecha_aprobacion = Carbon::now();
                         $record->save();
                     }),
-                // Acción: rechazar
+
+                // Acción: rechazar con motivo opcional
                 Action::make('Rechazar')
                     ->color('danger')
                     ->visible(fn($record) => $record->estado === 'pendiente')
-                    ->action(function ($record) {
+                    ->modalHeading('Motivo de rechazo')
+                    ->modalSubmitActionLabel('Rechazar')
+                    ->form([
+                        Textarea::make('motivo')
+                            ->label('Motivo del rechazo')
+                    ])
+                    ->action(function ($record, $data) {
                         $adminId = Auth::id();
                         $record->estado = 'rechazada';
                         $record->aprobado_por = $adminId;
+                        $record->motivo = $data['motivo'] ?? null;
                         $record->fecha_aprobacion = Carbon::now();
-                        $record->save();
-                    }),
-                // Modal para registrar/editar motivo
-                Action::make('Motivo')
-                    ->modalHeading('Registrar motivo')
-                    ->modalSubmitActionLabel('Guardar motivo')
-                    ->form([
-                        Textarea::make('motivo')
-                            ->label('Motivo de la justificación')
-                            ->required(),
-                    ])
-                    ->fillForm(fn($record) => ['motivo' => $record->motivo])
-                    ->action(function ($record, $data) {
-                        $record->motivo = $data['motivo'];
                         $record->save();
                     }),
             ])
