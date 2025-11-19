@@ -24,7 +24,10 @@ class JustificacionsTable
     {
         return $table
             ->columns([
-           
+               TextColumn::make('created_at')
+                ->label('Fecha de registro')
+                    ->dateTime()
+                    ->sortable(),
                 // Empleado: nombre, apellido y cédula
                 TextColumn::make('empleado.primer_nombre')
                     ->label('Nombre')
@@ -41,19 +44,17 @@ class JustificacionsTable
                 TextColumn::make('estado')
                     ->badge(),
                 // Mostrar nombre del administrador (aprobado_por)
-                TextColumn::make('administrador.primer_nombre')
+              
+                           TextColumn::make('motivo')
+                    ->badge(),
+                      TextColumn::make('administrador.primer_nombre')
                     ->label('Aprobado por')
                     ->sortable()
                     ->searchable(),
-                           TextColumn::make('motivo')
-                    ->badge(),
                 TextColumn::make('fecha_aprobacion')
                     ->dateTime()
                     ->sortable(),
-                TextColumn::make('created_at')
-                ->label('Fecha de creación')
-                    ->dateTime()
-                    ->sortable()
+            
             ])
             ->filters([
                 // Buscar por cédula de empleado
