@@ -20,6 +20,17 @@ class AsistenciaDiaria extends Model
         'estado',
     ];
 
+    /**
+     * Castear campos de fecha/hora a objetos Carbon
+     */
+    protected $casts = [
+        'fecha' => 'date',
+        'hora_entrada' => 'datetime',
+        'hora_salida' => 'datetime',
+        'minutos_retraso' => 'integer',
+        'horas_trabajadas' => 'decimal:2',
+    ];
+
     // Relación a Empleado
     public function empleado(): BelongsTo
     {
