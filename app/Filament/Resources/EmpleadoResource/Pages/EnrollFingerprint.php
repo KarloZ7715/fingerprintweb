@@ -181,7 +181,14 @@ class EnrollFingerprint extends Page
 
                 // Verificar si hubo error
                 if ($esp32State === 'error') {
-                    $this->handleEnrollmentError($data['error_message'] ?? 'Error desconocido');
+                    $errorMsg = $data['error_message'] ?? 'Error desconocido';
+                    
+                    // Si el error incluye información del slot duplicado, agregarla al mensaje
+                    if (isset($data['duplicate_slot'])) {
+                        $errorMsg = "Huella duplicada. Ya existe en slot " . $data['duplicate_slot'];
+                    }
+                    
+                    $this->handleEnrollmentError($errorMsg);
                 }
 
             } else {
@@ -229,12 +236,48 @@ class EnrollFingerprint extends Page
         $this->enrollmentState = 'error';
         $this->enrollmentProgress = 0;
 
-        Notification::make()
-            ->danger()
-            ->title('Error en el registro')
-            ->body($errorMessage)
-            ->persistent()
-            ->send();
+        // Detectar si es un error de huella duplicada
+        $isDuplicate = stripos($errorMessage, 'duplicada') !== false || 
+                       stripos($errorMessage, 'duplicate') !== false ||
+                       stripos($errorMessage, 'ya existe') !== false;
+
+        if ($isDuplicate) {
+            // Extraer el número de slot si está presente
+            preg_match('/slot\s*:?\s*(\d+)/i', $errorMessage, $matches);
+            $slotNumber = $matches[1] ?? 'desconocido';
+
+            Notification::make()
+                ->warning()
+                ->title('⚠️ Huella Duplicada Detectada')
+                ->body("Esta huella ya está registrada en el sensor (Slot #{$slotNumber}). " .
+                       "Cada empleado debe usar una huella única. " .
+                       "Por favor, use un dedo diferente o verifique si esta huella pertenece a otro empleado.")
+                ->persistent()
+                ->icon('heroicon-o-exclamation-triangle')
+                ->iconColor('warning')
+                ->actions([
+                    \Filament\Notifications\Actions\Action::make('retry')
+                        ->label('Intentar con otro dedo')
+                        ->button()
+                        ->color('primary')
+                        ->close(),
+                    \Filament\Notifications\Actions\Action::make('view_slots')
+                        ->label('Ver huellas registradas')
+                        ->button()
+                        ->color('gray')
+                        ->url(route('filament.admin.resources.empleados.index'))
+                        ->close(),
+                ])
+                ->send();
+        } else {
+            // Error genérico
+            Notification::make()
+                ->danger()
+                ->title('Error en el registro')
+                ->body($errorMessage)
+                ->persistent()
+                ->send();
+        }
 
         // Reiniciar estado para permitir reintento
         $this->assignedSlotId = null;

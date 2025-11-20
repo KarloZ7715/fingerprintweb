@@ -5,6 +5,8 @@ namespace App\Http\Controllers\Api;
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
 use App\Models\RegistroSensor;
+use App\Models\Huella;
+use App\Models\AsistenciaDiaria;
 use Illuminate\Database\QueryException;
 use Carbon\Carbon;
 
@@ -19,9 +21,51 @@ class AsistenciaDiariaController extends Controller
                 'fecha_hora' => Carbon::now(),
             ]);
 
+            // Obtener info detallada de la asistencia tras ejecución del trigger
+            $huella = Huella::with('empleado')->findOrFail($huella_id);
+            $empleado = $huella->empleado;
+            
+            $asistencia = AsistenciaDiaria::where('empleado_id', $empleado->id)
+                ->whereDate('fecha', Carbon::today())
+                ->first();
+            
+            if (!$asistencia) {
+                return response()->json([
+                    'success' => false,
+                    'message' => 'No se pudo obtener información de asistencia',
+                ], 500);
+            }
+            
+            // Determinar tipo (entrada o salida)
+            $tipo = $asistencia->hora_salida ? 'salida' : 'entrada';
+            
+            // Determinar estado basado en minutos_retraso y estado del registro
+            $estado = 'puntual';
+            if ($tipo === 'entrada' && $asistencia->minutos_retraso > 0) {
+                $estado = 'tarde';
+            }
+            if ($asistencia->estado === 'completo') {
+                $estado = 'completo';
+            }
+            
+            // Formatear hora con verificación de null
+            $hora = null;
+            if ($tipo === 'entrada' && $asistencia->hora_entrada) {
+                $hora = $asistencia->hora_entrada->format('H:i:s');
+            } elseif ($tipo === 'salida' && $asistencia->hora_salida) {
+                $hora = $asistencia->hora_salida->format('H:i:s');
+            }
+
             return response()->json([
-                'success'  => true,
-                'registro' => $registro,
+                'success' => true,
+                'message' => 'Asistencia registrada correctamente',
+                'empleado_id' => $empleado->id,
+                'nombre_completo' => $empleado->nombre_completo,
+                'tipo' => $tipo,
+                'hora' => $hora,
+                'estado' => $estado,
+                'minutos_retraso' => $asistencia->minutos_retraso,
+                'horas_trabajadas' => $asistencia->horas_trabajadas ?? 0,
             ], 201);
 
         } catch (QueryException $e) {

@@ -171,9 +171,10 @@ class FingerprintController extends Controller
     public function identify(Request $request): JsonResponse
     {
         // Validación inline
+        // NOTA: confidence del AS608 puede ser > 100 (rango real: 0-255+)
         $validated = $request->validate([
             'slot_id' => 'required|integer|min:0|max:299',
-            'confidence' => 'required|integer|min:0|max:100',
+            'confidence' => 'required|integer|min:0|max:65535', // Rango amplio para AS608
         ]);
 
         try {
@@ -200,21 +201,20 @@ class FingerprintController extends Controller
             return response()->json([
                 'success' => true,
                 'message' => 'Empleado identificado',
-                'data' => [
-                    'empleado_id' => $empleado->id,
-                    'cedula' => $empleado->cedula,
-                    'nombre_completo' => $empleado->nombre_completo,
-                    'estado' => $empleado->estado,
-                    'sucursal' => $empleado->sucursal ? [
-                        'id' => $empleado->sucursal->id,
-                        'nombre' => $empleado->sucursal->nombre,
-                    ] : null,
-                    'horario' => $empleado->horario ? [
-                        'id' => $empleado->horario->id,
-                        'nombre' => $empleado->horario->nombre ?? null,
-                    ] : null,
-                    'confidence' => $validated['confidence'],
-                ],
+                'huella_id' => $huella->id, // ID de la huella (requerido por ESP32)
+                'empleado_id' => $empleado->id,
+                'cedula' => $empleado->cedula,
+                'nombre_completo' => $empleado->nombre_completo,
+                'estado' => $empleado->estado,
+                'sucursal' => $empleado->sucursal ? [
+                    'id' => $empleado->sucursal->id,
+                    'nombre' => $empleado->sucursal->nombre,
+                ] : null,
+                'horario' => $empleado->horario ? [
+                    'id' => $empleado->horario->id,
+                    'nombre' => $empleado->horario->nombre ?? null,
+                ] : null,
+                'confidence' => $validated['confidence'],
             ]);
 
         } catch (\Exception $e) {
