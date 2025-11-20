@@ -47,13 +47,16 @@ class FingerprintService
     private int $minQualityScore;
 
     /**
-     * Servicio de discovery del ESP32
+     * Servicio de discovery del ESP32 (DESACTIVADO - usar IP directa del .env)
+     * 
+     * NOTA: Discovery causaba timeout de 120+ segundos al escanear red completa
+     * cuando mDNS no resolvía. Ahora usamos solo ESP32_URL del .env.
      */
-    private ESP32DiscoveryService $discoveryService;
+    // private ESP32DiscoveryService $discoveryService;
 
-    public function __construct(ESP32DiscoveryService $discoveryService)
+    public function __construct()
     {
-        $this->discoveryService = $discoveryService;
+        // $this->discoveryService = $discoveryService; // DESACTIVADO
         $this->esp32Url = $this->getESP32Url();
         $this->apiToken = null; // Por ahora sin autenticación
         $this->timeout = config('fingerprint.sensor.timeout', 10);
@@ -63,26 +66,25 @@ class FingerprintService
     }
 
     /**
-     * Obtiene la URL del ESP32 usando discovery automático
+     * Obtiene la URL del ESP32 desde .env (discovery desactivado)
      * 
      * @return string URL del ESP32
-     * @throws \Exception Si no se puede encontrar el ESP32
+     * @throws \Exception Si no está configurado en .env
      */
     private function getESP32Url(): string
     {
-        $url = $this->discoveryService->getESP32Url();
+        // Usar SOLO la IP configurada en .env (ESP32_URL)
+        // Discovery desactivado para evitar timeout por escaneo de red (120+ segundos)
+        $url = config('fingerprint.esp32_url');
 
-        if (!$url) {
-            // Fallback al .env como última opción
-            $url = config('fingerprint.esp32_url');
-
-            if (!$url) {
-                throw new \Exception('No se pudo encontrar el ESP32. Verifica que esté conectado a la red.');
-            }
-
-            logger()->warning('[FingerprintService] Usando URL de .env como fallback', ['url' => $url]);
+        if (!$url || !filter_var($url, FILTER_VALIDATE_URL)) {
+            throw new \Exception(
+                'ESP32_URL no configurado correctamente en .env. ' .
+                'Formato esperado: ESP32_URL=http://IP_DEL_ESP32 (ejemplo: ESP32_URL=http://192.168.1.29)'
+            );
         }
 
+        logger()->debug('[FingerprintService] Usando URL de .env', ['url' => $url]);
         return rtrim($url, '/'); // Remover trailing slash
     }
 
