@@ -26,3 +26,9 @@ use App\Http\Controllers\Api\TelegramController;
 
 
 Route::get('/telegram', [TelegramController::class, 'index']);
+Route::get('/reportes/asistencias', function () {
+    return view('reportes.asistencias');
+})->name('reportes.asistencias');
+
+Route::get('/reportes/pdf/{mes}/{anio}', 'App\Http\Controllers\ReportePDFController@generarPDF')
+    ->name('reportes.pdf');
