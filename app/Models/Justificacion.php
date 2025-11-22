@@ -15,6 +15,9 @@ class Justificacion extends Model
         'estado',
         'aprobado_por',
         'fecha_aprobacion',
+        'plazo_dias',
+        'fecha_expiracion',
+      'fecha_incapacidad',
     ];
 
     // Relación a AsistenciaDiaria

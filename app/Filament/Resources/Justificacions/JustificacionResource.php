@@ -33,7 +33,10 @@ class JustificacionResource extends Resource
         return JustificacionsTable::configure($table)
             ->defaultSort('id', 'desc');
     }
-
+public static function form(Schema $schema): Schema
+    {
+        return JustificacionForm::configure($schema);
+    }
     public static function getEloquentQuery(): \Illuminate\Database\Eloquent\Builder
     {
         $today = now()->toDateString();
