@@ -16,6 +16,7 @@ use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Columns\TextColumn;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use BackedEnum;
 use UnitEnum;
 
@@ -188,7 +189,11 @@ class EmpleadoResource extends Resource
                     ->label('Nombre Completo')
                     ->getStateUsing(fn(Empleado $record) => $record->nombre_completo)
                     ->searchable(['primer_nombre', 'segundo_nombre', 'primer_apellido', 'segundo_apellido'])
-                    ->sortable(),
+                    ->sortable(query: function (Builder $query, string $direction): Builder {
+                        return $query
+                            ->orderBy('primer_nombre', $direction)
+                            ->orderBy('primer_apellido', $direction);
+                    }),
 
                 Tables\Columns\TextColumn::make('email')
                     ->label('Correo')
