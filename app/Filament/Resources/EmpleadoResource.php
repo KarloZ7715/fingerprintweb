@@ -53,6 +53,7 @@ class EmpleadoResource extends Resource
                                     ->label('Correo Electrónico')
                                     ->email()
                                     ->required()
+                                    ->unique(ignoreRecord: true)
                                     ->maxLength(100)
                                     ->placeholder('ejemplo@correo.com')
                                     ->helperText('Formato: usuario@dominio.com'),
