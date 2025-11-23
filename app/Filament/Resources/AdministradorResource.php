@@ -49,6 +49,7 @@ class AdministradorResource extends Resource
                     ->label('Correo electronico')
                     ->email()
                     ->required()
+                    ->unique(ignoreRecord: true)
                     ->helperText('Se usa para iniciar sesion en el panel.'),
                 Forms\Components\TextInput::make('password')
                     ->label('Contrasena')
