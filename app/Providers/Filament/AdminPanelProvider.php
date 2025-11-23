@@ -18,6 +18,7 @@ use Illuminate\Foundation\Http\Middleware\VerifyCsrfToken;
 use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
+use Filament\Navigation\NavigationItem;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -53,8 +54,20 @@ class AdminPanelProvider extends PanelProvider
                 DisableBladeIconComponents::class,
                 DispatchServingFilamentEvent::class,
             ])
+
             ->authMiddleware([
                 Authenticate::class,
-            ]);
+            ])
+            ->navigationItems([
+                NavigationItem::make('Informe')
+                    ->url('http://localhost:8000/reporte_asistencias.php') // URL de tu PHP
+                    ->icon('heroicon-o-document-text') // El ícono que prefieras
+                    ->group('Gestión de Personal')
+                    ->sort(8)->openUrlInNewTab(), // Esto hará que se abra en nueva pestaña
+                // Aquí defines el orden, será el octavo en el menú
+                // Puedes elegir el grupo (sección) del menú
+            ])
+
+        ;
     }
 }
