@@ -63,7 +63,7 @@ class AdminPanelProvider extends PanelProvider
             ])
             ->navigationItems([
                 NavigationItem::make('Informe')
-                    ->url('http://localhost:8000/reporte_asistencias.php') // URL de tu PHP
+                    ->url('https://tidvisd.alwaysdata.net/reporte_asistencias.php') // URL de tu PHP
                     ->icon('heroicon-o-document-text') // El ícono que prefieras
                     ->group('Gestión de Personal')
                     ->sort(8)->openUrlInNewTab(), // Esto hará que se abra en nueva pestaña
