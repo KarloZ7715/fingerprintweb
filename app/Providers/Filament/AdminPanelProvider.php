@@ -19,6 +19,7 @@ use Illuminate\Routing\Middleware\SubstituteBindings;
 use Illuminate\Session\Middleware\StartSession;
 use Illuminate\View\Middleware\ShareErrorsFromSession;
 use Filament\Navigation\NavigationItem;
+use App\Filament\Pages\Auth\CustomRequestPasswordReset;
 
 class AdminPanelProvider extends PanelProvider
 {
@@ -29,10 +30,12 @@ class AdminPanelProvider extends PanelProvider
             ->id('admin')
             ->path('admin')
             ->login() // usa el formulario de login por defecto de Filament
+            ->passwordReset(CustomRequestPasswordReset::class)
             ->colors([
                 'primary' => Color::Amber,
             ])
             ->authGuard('web') // usa el guard 'web' configurado en config/auth.php
+            ->authPasswordBroker('administradores')
             ->discoverResources(in: app_path('Filament/Resources'), for: 'App\\Filament\\Resources')
             ->discoverPages(in: app_path('Filament/Pages'), for: 'App\\Filament\\Pages')
             ->pages([
