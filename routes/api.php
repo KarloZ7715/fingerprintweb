@@ -2,6 +2,7 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Api\FingerprintController;
+use App\Http\Controllers\Api\DeviceCommandController;
 
 
 /*
@@ -81,3 +82,29 @@ Route::get('/llamada/{alarma_id}/activar', [TelegramController::class, 'llamar']
 use App\Http\Controllers\Api\AsistenciaDiariaController;
 
 Route::get('/registroasistencia/{huella_id}', [AsistenciaDiariaController::class, 'store']);
+
+// Rutas de Comandos para ESP32 (Polling)
+Route::get('/device/commands', [DeviceCommandController::class, 'index']);
+Route::put('/device/commands/{id}', [DeviceCommandController::class, 'update']);
+
+// Ruta de prueba para Telegram (TEMPORAL)
+Route::get('/test-telegram/{username}', function ($username) {
+    $url = "https://api.callmebot.com/start.php";
+    $params = [
+        'user'    => '@' . ltrim($username, '@'),
+        'text'    => 'Esta es una llamada de prueba del sistema de alarma.',
+        'lang'    => 'es-ES-Standard-A',
+        'rpt'     => 2,
+        'cc'      => 'yes',
+        'timeout' => 30,
+    ];
+
+    $response = Illuminate\Support\Facades\Http::get($url, $params);
+
+    return [
+        'status' => $response->status(),
+        'body' => $response->body(),
+        'url_called' => $url,
+        'params' => $params
+    ];
+});

@@ -103,36 +103,134 @@ class FingerprintService
     public function enrollFingerprint(
         int $empleadoId,
         int $slotId,
-        int $qualityScore,
+        int $qualityScore, // Ignorado en modo asíncrono
         ?int $adminId = null,
         string $tipoDedo = 'Indice',
         string $mano = 'Derecha'
     ): array {
+        // En lugar de llamar a la ESP32 directamente, creamos un comando pendiente
+        // La ESP32 consultará este comando mediante polling
+        
+        // Validar empleado solo si el ID es mayor a 0 (para permitir enrollment anónimo en wizard)
+        if ($empleadoId > 0) {
+            $empleado = Empleado::findOrFail($empleadoId);
+        }
+
+        // Crear comando
+        $command = \App\Models\DeviceCommand::create([
+            'command' => 'enroll_fingerprint',
+            'payload' => [
+                'empleado_id' => $empleadoId,
+                'slot_id' => $slotId,
+                'admin_id' => $adminId,
+                'tipo_dedo' => $tipoDedo,
+                'mano' => $mano
+            ],
+            'status' => 'pending'
+        ]);
+
+        Log::channel('fingerprint')->info('Comando de enrollment encolado', [
+            'command_id' => $command->id,
+            'empleado_id' => $empleadoId,
+            'slot_id' => $slotId
+        ]);
+
+        return [
+            'success' => true,
+            'queued' => true,
+            'command_id' => $command->id,
+            'message' => 'Comando enviado al dispositivo. Esperando ejecución...'
+        ];
+    }
+
+    /**
+     * Obtener comandos pendientes para la ESP32
+     */
+    public function getPendingCommands()
+    {
+        return \App\Models\DeviceCommand::where('status', 'pending')
+            ->orderBy('created_at', 'asc')
+            ->get();
+    }
+
+    /**
+     * Actualizar estado de un comando (llamado por ESP32)
+     */
+    public function updateCommandStatus($id, $status, $result = null)
+    {
+        $command = \App\Models\DeviceCommand::findOrFail($id);
+        $command->status = $status;
+        if ($result) {
+            $command->result = $result;
+        }
+        $command->save();
+
+        // Si el comando se completó exitosamente y era un enrollment, registrar la huella
+        if ($status === 'completed' && $command->command === 'enroll_fingerprint') {
+            $this->finalizeEnrollment($command);
+        }
+
+        return $command;
+    }
+
+    /**
+     * Finalizar enrollment (Guardar en BD) tras confirmación de ESP32
+     */
+    /**
+     * Obtener estado de un comando
+     */
+    public function getCommandStatus($id)
+    {
+        return \App\Models\DeviceCommand::find($id);
+    }
+
+    /**
+     * Cancelar un comando pendiente
+     */
+    public function cancelCommand($id)
+    {
+        $command = \App\Models\DeviceCommand::find($id);
+        if ($command && $command->status === 'pending') {
+            $command->status = 'failed';
+            $command->result = ['error' => 'Cancelado por el usuario'];
+            $command->save();
+            return true;
+        }
+        return false;
+    }
+    /**
+     * Finalizar enrollment (Guardar en BD) tras confirmación de ESP32
+     */
+    private function finalizeEnrollment($command)
+    {
+        $payload = $command->payload;
+        $result = $command->result;
+
+        // Extraer datos
+        $empleadoId = $payload['empleado_id'];
+        $slotId = $payload['slot_id'];
+        $qualityScore = $result['quality_score'] ?? 100;
+        $adminId = $payload['admin_id'] ?? null;
+        $tipoDedo = $payload['tipo_dedo'] ?? 'Indice';
+        $mano = $payload['mano'] ?? 'Derecha';
+
         try {
             DB::beginTransaction();
 
-            // Validar empleado
+            // Si el empleadoId es 0, es un enrollment anónimo (desde wizard de creación)
+            // No guardamos la huella aquí, el wizard lo hará manualmente usando el resultado del comando
+            if ($empleadoId === 0) {
+                Log::channel('fingerprint')->info('Enrollment anónimo completado (Wizard)', [
+                    'command_id' => $command->id,
+                    'slot_id' => $slotId,
+                    'quality' => $qualityScore
+                ]);
+                return;
+            }
+
             $empleado = Empleado::findOrFail($empleadoId);
 
-            if ($empleado->estado !== 'Pendiente_Huella') {
-                throw new \Exception(
-                    "El empleado no está en estado 'Pendiente_Huella'. Estado actual: {$empleado->estado}"
-                );
-            }
-
-            // Validar slot disponible
-            if ($this->isSlotOccupied($slotId)) {
-                throw new \Exception("El slot {$slotId} ya está ocupado en la base de datos");
-            }
-
-            // Validar calidad mínima
-            if ($qualityScore < $this->minQualityScore) {
-                throw new \Exception(
-                    "Calidad de huella insuficiente: {$qualityScore} (mínimo: {$this->minQualityScore})"
-                );
-            }
-
-            // Crear registro de huella (el template queda almacenado en el sensor AS608)
+            // Crear registro de huella
             $huella = Huella::create([
                 'empleado_id' => $empleadoId,
                 'numero_slot' => $slotId,
@@ -143,38 +241,23 @@ class FingerprintService
                 'mano' => $mano,
             ]);
 
-            // Actualizar estado del empleado a Activo
+            // Actualizar estado del empleado
             $empleado->estado = 'Activo';
             $empleado->save();
 
             DB::commit();
 
-            Log::channel('fingerprint')->info('Huella registrada exitosamente', [
-                'huella_id' => $huella->id,
-                'empleado_id' => $empleado->id,
-                'slot_id' => $slotId,
-                'quality' => $qualityScore,
-                'admin_id' => $adminId,
+            Log::channel('fingerprint')->info('Enrollment finalizado exitosamente desde comando', [
+                'command_id' => $command->id,
+                'huella_id' => $huella->id
             ]);
-
-            return [
-                'success' => true,
-                'huella_id' => $huella->id,
-                'empleado_id' => $empleado->id,
-                'slot_id' => $slotId,
-                'estado_empleado' => $empleado->estado,
-            ];
 
         } catch (\Exception $e) {
             DB::rollBack();
-
-            Log::channel('fingerprint')->error('Error en enrollFingerprint', [
-                'empleado_id' => $empleadoId,
-                'slot_id' => $slotId,
-                'error' => $e->getMessage(),
+            Log::channel('fingerprint')->error('Error al finalizar enrollment desde comando', [
+                'command_id' => $command->id,
+                'error' => $e->getMessage()
             ]);
-
-            throw $e;
         }
     }
 
