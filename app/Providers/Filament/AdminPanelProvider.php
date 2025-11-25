@@ -61,15 +61,15 @@ class AdminPanelProvider extends PanelProvider
             ->authMiddleware([
                 Authenticate::class,
             ])
-            ->navigationItems([
-                NavigationItem::make('Informe')
-                    ->url('https://tidvisd.alwaysdata.net/reporte_asistencias.php') // URL de tu PHP
-                    ->icon('heroicon-o-document-text') // El ícono que prefieras
-                    ->group('Gestión de Personal')
-                    ->sort(8)->openUrlInNewTab(), // Esto hará que se abra en nueva pestaña
-                // Aquí defines el orden, será el octavo en el menú
-                // Puedes elegir el grupo (sección) del menú
-            ])
+          ->navigationItems([
+    NavigationItem::make('Informe')
+        ->url('https://tidvisd.alwaysdata.net/redirect_reporte.php') // ← CAMBIADO AQUÍ
+        ->icon('heroicon-o-document-text')
+        ->group('Gestión de Personal')
+        ->sort(8)
+        ->openUrlInNewTab(),
+])
+
 
         ;
     }
