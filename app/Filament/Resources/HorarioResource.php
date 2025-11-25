@@ -124,6 +124,7 @@ class HorarioResource extends Resource
                             ->columns(4)
                             ->gridDirection('row')
                             ->default(['lunes', 'martes', 'miercoles', 'jueves', 'viernes'])
+                            ->rules(['nullable', 'array'])
                             ->helperText('Marca los días en que se aplica este horario'),
                     ])
                     ->collapsible(),
