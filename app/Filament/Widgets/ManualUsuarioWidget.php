@@ -14,6 +14,6 @@ class ManualUsuarioWidget extends Widget
 
     public function getManualUrl(): string
     {
-        return asset('storage/documentos/manual-usuario.pdf');
+        return asset('docs/manual-usuario.pdf');
     }
 }
