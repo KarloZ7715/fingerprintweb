@@ -23,6 +23,7 @@ class EnrollFingerprint extends Page
     public int $enrollmentProgress = 0; // 0-100
     public string $enrollmentMessage = 'Listo para iniciar registro';
     public ?int $assignedSlotId = null;
+    public ?int $commandId = null;
     public bool $isPolling = false;
 
     /**
@@ -67,19 +68,9 @@ class EnrollFingerprint extends Page
     {
         $service = app(FingerprintService::class);
 
-        // Verificar conexión con ESP32
-        $connection = $service->checkEsp32Connection();
-
-        if (!$connection['connected']) {
-            Notification::make()
-                ->danger()
-                ->title('Sensor dactilar no disponible')
-                ->body($connection['message'])
-                ->persistent()
-                ->send();
-
-            return;
-        }
+        // Verificar conexión con ESP32 - OMITIDO EN MODO POLLING
+        // $connection = $service->checkEsp32Connection();
+        // if (!$connection['connected']) { ... }
 
         // Obtener slot disponible
         $availableSlot = $service->getAvailableSlot();
@@ -95,40 +86,37 @@ class EnrollFingerprint extends Page
             return;
         }
 
-        // Comunicar con ESP32 para iniciar enrollment
+        // Comunicar con ESP32 para iniciar enrollment (vía Polling)
         try {
-            $response = Http::timeout(10)->post(config('fingerprint.esp32_url') . '/fingerprint/start-enroll', [
-                'empleado_id' => $this->record->id,
-                'slot_id' => $availableSlot
-            ]);
+            $result = $service->enrollFingerprint(
+                empleadoId: $this->record->id,
+                slotId: $availableSlot,
+                qualityScore: 0, // No relevante al inicio
+                adminId: auth()->id()
+            );
 
-            if ($response->successful()) {
-                $data = $response->json();
+            if ($result['success']) {
+                $this->assignedSlotId = $availableSlot;
+                $this->commandId = $result['command_id'];
+                $this->enrollmentState = 'enrolling';
+                $this->enrollmentProgress = 5;
+                $this->enrollmentMessage = 'Comando enviado. Esperando que el dispositivo lo procese...';
+                $this->isPolling = true;
 
-                if ($data['success'] ?? false) {
-                    $this->assignedSlotId = $availableSlot;
-                    $this->enrollmentState = 'enrolling';
-                    $this->enrollmentProgress = 5;
-                    $this->enrollmentMessage = 'Coloque su dedo en el sensor...';
-                    $this->isPolling = true;
-
-                    Notification::make()
-                        ->success()
-                        ->title('Registro iniciado')
-                        ->body("Slot #{$availableSlot} asignado. Siga las instrucciones del sensor.")
-                        ->send();
-                } else {
-                    throw new \Exception($data['message'] ?? 'Error desconocido');
-                }
+                Notification::make()
+                    ->success()
+                    ->title('Solicitud enviada')
+                    ->body("El dispositivo iniciará el registro en breve (Slot #{$availableSlot}).")
+                    ->send();
             } else {
-                throw new \Exception('El ESP32 respondió con error: ' . $response->status());
+                throw new \Exception($result['message'] ?? 'Error desconocido');
             }
 
         } catch (\Exception $e) {
             Notification::make()
                 ->danger()
                 ->title('Error al iniciar registro')
-                ->body('No se pudo comunicar con el ESP32: ' . $e->getMessage())
+                ->body('No se pudo encolar el comando: ' . $e->getMessage())
                 ->persistent()
                 ->send();
 
@@ -149,54 +137,45 @@ class EnrollFingerprint extends Page
         }
 
         try {
-            $response = Http::timeout(5)->get(config('fingerprint.esp32_url') . '/fingerprint/enroll-status');
+            $service = app(FingerprintService::class);
+            $command = $service->getCommandStatus($this->commandId);
 
-            if ($response->successful()) {
-                $data = $response->json();
+            if (!$command) {
+                $this->isPolling = false;
+                return;
+            }
 
-                // Actualizar estado local
-                $this->enrollmentProgress = $data['progress'] ?? 0;
-
-                // Mapear estados del ESP32 a mensajes en español
-                $stateMessages = [
-                    'idle' => 'En espera',
-                    'waiting_finger_1' => 'Coloque su dedo en el sensor...',
-                    'capturing_1' => 'Capturando primera imagen...',
-                    'waiting_remove_1' => 'Retire el dedo del sensor',
-                    'waiting_finger_2' => 'Coloque el MISMO dedo nuevamente...',
-                    'capturing_2' => 'Capturando segunda imagen...',
-                    'creating_model' => 'Creando modelo de huella...',
-                    'storing' => 'Guardando en sensor...',
-                    'success' => '¡Huella registrada exitosamente!',
-                    'error' => 'Error en el registro'
-                ];
-
-                $esp32State = $data['state'] ?? 'idle';
-                $this->enrollmentMessage = $stateMessages[$esp32State] ?? 'Procesando...';
-
-                // Verificar si terminó con éxito
-                if ($esp32State === 'success') {
+            // Mapear estados del comando a mensajes
+            if ($command->status === 'pending') {
+                $this->enrollmentMessage = 'Esperando conexión del dispositivo...';
+                $this->enrollmentProgress = 5;
+            } elseif ($command->status === 'processing') {
+                // Leer progreso detallado del enrollment
+                $result = $command->result;
+                
+                if (isset($result['enrollment_state'])) {
+                    // Hay información de progreso detallada
+                    $this->enrollmentProgress = $result['progress'] ?? 50;
+                    $this->enrollmentMessage = $result['message'] ?? 'Procesando...';
+                } else {
+                    // Fallback si no hay información detallada
+                    $this->enrollmentMessage = 'Dispositivo procesando... Siga las instrucciones.';
+                    $this->enrollmentProgress = 50;
+                }
+            } elseif ($command->status === 'completed') {
+                $result = $command->result;
+                // Verificar quality score si está disponible
+                if (isset($result['quality_score'])) {
+                    // Éxito
+                    $this->handleEnrollmentSuccess();
+                } else {
+                    // Completado pero sin score? Asumimos éxito
                     $this->handleEnrollmentSuccess();
                 }
-
-                // Verificar si hubo error
-                if ($esp32State === 'error') {
-                    $errorMsg = $data['error_message'] ?? 'Error desconocido';
-                    
-                    // Si el error incluye información del slot duplicado, agregarla al mensaje
-                    if (isset($data['duplicate_slot'])) {
-                        $errorMsg = "Huella duplicada. Ya existe en slot " . $data['duplicate_slot'];
-                    }
-                    
-                    $this->handleEnrollmentError($errorMsg);
-                }
-
-            } else {
-                // Error de comunicación, pero no cancelar aún
-                logger()->warning('Error al hacer polling del enrollment', [
-                    'status' => $response->status(),
-                    'empleado_id' => $this->record->id
-                ]);
+            } elseif ($command->status === 'failed') {
+                $result = $command->result;
+                $errorMsg = $result['error'] ?? 'Error desconocido';
+                $this->handleEnrollmentError($errorMsg);
             }
 
         } catch (\Exception $e) {
@@ -288,16 +267,13 @@ class EnrollFingerprint extends Page
      */
     public function cancelEnrollment(): void
     {
-        if ($this->assignedSlotId !== null) {
+        if ($this->commandId !== null) {
             try {
-                // Intentar eliminar el slot del ESP32
-                Http::timeout(5)->delete(
-                    config('fingerprint.esp32_url') . '/fingerprint/delete-slot',
-                    ['slot' => $this->assignedSlotId]
-                );
+                $service = app(FingerprintService::class);
+                $service->cancelCommand($this->commandId);
             } catch (\Exception $e) {
-                logger()->warning('No se pudo eliminar slot al cancelar', [
-                    'slot' => $this->assignedSlotId,
+                logger()->warning('No se pudo cancelar comando', [
+                    'command_id' => $this->commandId,
                     'error' => $e->getMessage()
                 ]);
             }
