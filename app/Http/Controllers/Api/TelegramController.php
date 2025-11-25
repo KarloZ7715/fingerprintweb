@@ -58,9 +58,22 @@ class TelegramController extends Controller
             'Accion'       => "Llamada de emergencia por activación de alarma",
         ]);
 
+        return $this->procesarLlamadas($alarma, $evento);
+    }
+
+    /**
+     * Procesa las llamadas de telegram para una alarma y evento dados.
+     * Puede ser llamado internamente o desde el endpoint API.
+     */
+    public function procesarLlamadas(Alarma $alarma, Evento $evento)
+    {
+        // Aumentar tiempo de ejecución y evitar que se cancele si el cliente (ESP32) se desconecta
+        set_time_limit(300);
+        ignore_user_abort(true);
+
         $mensaje = "¡Alerta! Alarma '{$alarma->nombre}' activada en sucursal '{$alarma->sucursal->nombre}'.";
 
-        // Obtener contactos y ordenarlos por prioridad
+        // Obtener contactos ordenados por prioridad
         $contactos = ContactoEmergencia::where('sucursal_id', $alarma->sucursal_id)
             ->orderByRaw("CASE WHEN prioridad = 'alta' THEN 1 WHEN prioridad = 'media' THEN 2 ELSE 3 END")
             ->get();
@@ -77,9 +90,13 @@ class TelegramController extends Controller
             'detalles' => []
         ];
 
-        // Preparar las llamadas que se realizarán
-        $contactosParaLlamar = [];
-        
+        // Agrupar contactos por prioridad para procesarlos en lotes
+        $lotes = [
+            'alta' => [],
+            'media' => [],
+            'baja' => []
+        ];
+
         foreach ($contactos as $contacto) {
             $usuarioTele = trim($contacto->usario_tele ?? '');
             
@@ -122,23 +139,32 @@ class TelegramController extends Controller
                 }
             }
 
-            // Agregar a la lista de contactos para llamar simultáneamente
-            $contactosParaLlamar[] = [
-                'contacto' => $contacto,
-                'usuario_tele' => $usuarioTele
-            ];
+            // Clasificar en el lote correspondiente
+            $prioridad = strtolower($contacto->prioridad);
+            if ($prioridad == 'alta') {
+                $lotes['alta'][] = ['contacto' => $contacto, 'usuario_tele' => $usuarioTele];
+            } elseif ($prioridad == 'media') {
+                $lotes['media'][] = ['contacto' => $contacto, 'usuario_tele' => $usuarioTele];
+            } else {
+                $lotes['baja'][] = ['contacto' => $contacto, 'usuario_tele' => $usuarioTele];
+            }
         }
 
-        // Realizar TODAS las llamadas en PARALELO usando Http::pool()
-        if (!empty($contactosParaLlamar)) {
-            Log::info("Iniciando " . count($contactosParaLlamar) . " llamadas simultáneas...");
+        // Procesar lotes en orden: Alta -> Media -> Baja
+        foreach (['alta', 'media', 'baja'] as $prioridadLote) {
+            $contactosLote = $lotes[$prioridadLote];
             
-            $respuestas = $this->realizarLlamadasSimultaneas($contactosParaLlamar, $mensaje);
+            if (empty($contactosLote)) continue;
+
+            Log::info("Procesando lote de prioridad {$prioridadLote} con " . count($contactosLote) . " contactos...");
+
+            // Realizar llamadas del lote en PARALELO
+            $respuestas = $this->realizarLlamadasSimultaneas($contactosLote, $mensaje);
             
-            // Procesar las respuestas - REGISTRAR SOLO UNA VEZ AQUÍ
+            // Procesar respuestas del lote
             foreach ($respuestas as $index => $respuestaData) {
-                $contacto = $contactosParaLlamar[$index]['contacto'];
-                $usuarioTele = $contactosParaLlamar[$index]['usuario_tele'];
+                $contacto = $contactosLote[$index]['contacto'];
+                $usuarioTele = $contactosLote[$index]['usuario_tele'];
                 $respuesta = $respuestaData['respuesta'];
                 $success = $respuestaData['success'];
                 
@@ -146,7 +172,6 @@ class TelegramController extends Controller
                 if ($success) {
                     $analisis = $this->analizarRespuestaCallMeBot($respuesta);
                 } else {
-                    // Si hubo error de conexión o timeout
                     $analisis = [
                         'exitoso' => false,
                         'contestado' => false,
@@ -158,7 +183,7 @@ class TelegramController extends Controller
                 // Determinar estado
                 $estado = $analisis['exitoso'] ? 'Enviado' : 'Fallido';
                 
-                // Verificar si es error de límite de 65 segundos (significa que fue exitoso antes)
+                // Verificar si es error de límite de 65 segundos
                 if (!$analisis['exitoso'] && 
                     (str_contains($respuesta, '65 segundos') || str_contains($respuesta, 'No se permiten dos llamadas'))) {
                     $estado = 'Enviado';
@@ -167,7 +192,7 @@ class TelegramController extends Controller
                     $this->guardarUltimaLlamada($usuarioTele);
                 }
                 
-                // Registrar en base de datos - SOLO UNA VEZ
+                // Registrar en base de datos
                 $detalle = $analisis['exitoso'] 
                     ? "Llamada exitosa. {$analisis['mensaje_detallado']}" 
                     : "Llamada fallida. {$analisis['mensaje_detallado']}";
@@ -192,7 +217,6 @@ class TelegramController extends Controller
                         $resultados['no_contestados']++;
                     }
                     
-                    // Guardar en cache la última llamada exitosa
                     $this->guardarUltimaLlamada($usuarioTele);
                 } else {
                     $resultados['fallidos']++;

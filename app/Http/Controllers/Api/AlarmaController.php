@@ -230,6 +230,16 @@ class AlarmaController extends Controller
             }
         }
 
+        // ----------------------------------------------------------------
+        // NUEVO: Disparar llamadas de Telegram
+        // ----------------------------------------------------------------
+        try {
+            $telegramController = new \App\Http\Controllers\Api\TelegramController();
+            $telegramController->procesarLlamadas($alarma, $evento);
+        } catch (\Exception $e) {
+            \Illuminate\Support\Facades\Log::error("Error al disparar llamadas de Telegram desde AlarmaController: " . $e->getMessage());
+        }
+
         return response()->json([
             'success' => true,
             'message' => 'Alarma activada por detección de movimiento',
