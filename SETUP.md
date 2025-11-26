@@ -586,13 +586,3 @@ docker compose exec app php artisan optimize:clear
 Si experimentas tiempos de carga >5 segundos, **no estás usando WSL 2**. Sigue la sección "[Configuración Recomendada para Windows](#configuración-recomendada-para-windows)" para obtener rendimiento óptimo (90-150ms).
 
 ---
-
-## Documentación Adicional
-
-Para más información detallada, consulta los siguientes archivos:
-
--   **SETUP.md** - Guía completa de configuración del proyecto
--   **DOCKER.md** - Documentación específica sobre Docker
--   **COMANDOS.md** - Referencia rápida de comandos útiles
-
----
