@@ -54,26 +54,28 @@ class EditEmpleado extends EditRecord
      */
     protected function mutateFormDataBeforeSave(array $data): array
     {
-        // Validar email con @
-        if (!str_contains($data['email'], '@')) {
+        // Validar email con @ si existe
+        if (!empty($data['email']) && !str_contains($data['email'], '@')) {
             throw \Illuminate\Validation\ValidationException::withMessages([
                 'email' => 'El correo electrónico debe contener @',
             ]);
         }
 
-        // Validar teléfono internacional (solo números después de limpiar)
-        if (!ctype_digit($data['telefono'])) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'telefono' => 'El teléfono debe contener solo números y el código de país',
-            ]);
-        }
+        // Validar teléfono internacional (solo números después de limpiar) si existe
+        if (!empty($data['telefono'])) {
+            if (!ctype_digit($data['telefono'])) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'telefono' => 'El teléfono debe contener solo números y el código de país',
+                ]);
+            }
 
-        // Validar longitud razonable (códigos de país + número local)
-        $length = strlen($data['telefono']);
-        if ($length < 7 || $length > 15) {
-            throw \Illuminate\Validation\ValidationException::withMessages([
-                'telefono' => 'El teléfono debe tener entre 7 y 15 dígitos (incluyendo código de país)',
-            ]);
+            // Validar longitud razonable (códigos de país + número local)
+            $length = strlen($data['telefono']);
+            if ($length < 7 || $length > 15) {
+                throw \Illuminate\Validation\ValidationException::withMessages([
+                    'telefono' => 'El teléfono debe tener entre 7 y 15 dígitos (incluyendo código de país)',
+                ]);
+            }
         }
 
         // Convertir campos opcionales vacíos a null explícitamente

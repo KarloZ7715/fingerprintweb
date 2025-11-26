@@ -66,7 +66,6 @@ class CreateEmpleado extends CreateRecord
                             TextInput::make('email')
                                 ->label('Correo Electrónico')
                                 ->email()
-                                ->required()
                                 ->maxLength(100)
                                 ->placeholder('ejemplo@correo.com')
                                 ->helperText('Formato: usuario@dominio.com'),
@@ -109,7 +108,6 @@ class CreateEmpleado extends CreateRecord
                         ->schema([
                             TextInput::make('codigo_pais')
                                 ->label('Código País')
-                                ->required()
                                 ->numeric()
                                 ->default('57')
                                 ->minLength(1)
@@ -120,7 +118,6 @@ class CreateEmpleado extends CreateRecord
 
                             TextInput::make('telefono')
                                 ->label('Número de Teléfono')
-                                ->required()
                                 ->tel()
                                 ->placeholder('310 1234567')
                                 ->formatStateUsing(function ($state) {
@@ -306,35 +303,39 @@ class CreateEmpleado extends CreateRecord
 
         logger()->info('[mutateFormDataBeforeCreate] Validación de huella pasó correctamente');
 
-        // Validar email con @
-        if (!str_contains($data['email'], '@')) {
+        // Validar email con @ si existe
+        if (!empty($data['email']) && !str_contains($data['email'], '@')) {
             throw ValidationException::withMessages([
                 'email' => 'El correo electrónico debe contener @',
             ]);
         }
 
-        // Limpiar y validar código de país (solo números)
-        $data['codigo_pais'] = preg_replace('/[^0-9]/', '', $data['codigo_pais']);
-        if (empty($data['codigo_pais']) || !ctype_digit($data['codigo_pais'])) {
-            throw ValidationException::withMessages([
-                'codigo_pais' => 'El código de país debe contener solo números',
-            ]);
+        // Limpiar y validar código de país (solo números) si existe
+        if (!empty($data['codigo_pais'])) {
+            $data['codigo_pais'] = preg_replace('/[^0-9]/', '', $data['codigo_pais']);
+            if (!ctype_digit($data['codigo_pais'])) {
+                throw ValidationException::withMessages([
+                    'codigo_pais' => 'El código de país debe contener solo números',
+                ]);
+            }
         }
 
-        // Limpiar y validar teléfono (solo números después de limpiar)
-        $data['telefono'] = preg_replace('/[^0-9]/', '', $data['telefono']);
-        if (empty($data['telefono']) || !ctype_digit($data['telefono'])) {
-            throw ValidationException::withMessages([
-                'telefono' => 'El teléfono debe contener solo números',
-            ]);
-        }
+        // Limpiar y validar teléfono (solo números después de limpiar) si existe
+        if (!empty($data['telefono'])) {
+            $data['telefono'] = preg_replace('/[^0-9]/', '', $data['telefono']);
+            if (!ctype_digit($data['telefono'])) {
+                throw ValidationException::withMessages([
+                    'telefono' => 'El teléfono debe contener solo números',
+                ]);
+            }
 
-        // Validar longitud de teléfono
-        $length = strlen($data['telefono']);
-        if ($length < 7 || $length > 15) {
-            throw ValidationException::withMessages([
-                'telefono' => 'El teléfono debe tener entre 7 y 15 dígitos',
-            ]);
+            // Validar longitud de teléfono
+            $length = strlen($data['telefono']);
+            if ($length < 7 || $length > 15) {
+                throw ValidationException::withMessages([
+                    'telefono' => 'El teléfono debe tener entre 7 y 15 dígitos',
+                ]);
+            }
         }
 
         // Convertir campos opcionales vacíos a null explícitamente

@@ -52,7 +52,6 @@ class EmpleadoResource extends Resource
                                 Forms\Components\TextInput::make('email')
                                     ->label('Correo Electrónico')
                                     ->email()
-                                    ->required()
                                     ->unique(ignoreRecord: true)
                                     ->maxLength(100)
                                     ->placeholder('ejemplo@correo.com')
@@ -96,7 +95,6 @@ class EmpleadoResource extends Resource
                             ->schema([
                                 Forms\Components\TextInput::make('codigo_pais')
                                     ->label('Código País')
-                                    ->required()
                                     ->numeric()
                                     ->default('57')
                                     ->minLength(1)
@@ -108,7 +106,6 @@ class EmpleadoResource extends Resource
 
                                 Forms\Components\TextInput::make('telefono')
                                     ->label('Número de Teléfono')
-                                    ->required()
                                     ->tel()
                                     ->placeholder('310 1234567')
                                     ->formatStateUsing(function ($state) {
