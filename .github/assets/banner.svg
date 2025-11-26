@@ -1,0 +1,56 @@
+<svg width="800" height="200" viewBox="0 0 800 200" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@700&amp;display=swap');
+      
+      /* Background removed/transparent */
+      
+      .text {
+        font-family: 'Orbitron', sans-serif;
+        font-size: 60px;
+        fill: #ffffff;
+        text-anchor: middle;
+        dominant-baseline: middle;
+        animation: neon 3s infinite alternate;
+      }
+      
+      .subtext {
+        font-family: sans-serif;
+        font-size: 18px;
+        fill: #8b949e;
+        text-anchor: middle;
+        opacity: 0;
+        animation: fadeIn 2s ease-out 1s forwards;
+      }
+
+      .line {
+        stroke: #00f2ff;
+        stroke-width: 2;
+        stroke-dasharray: 800;
+        stroke-dashoffset: 800;
+        animation: drawLine 2s ease-out forwards;
+      }
+
+      @keyframes neon {
+        0% { text-shadow: 0 0 5px #00f2ff, 0 0 10px #00f2ff; }
+        100% { text-shadow: 0 0 20px #00f2ff, 0 0 30px #00f2ff, 0 0 40px #00f2ff; }
+      }
+
+      @keyframes fadeIn {
+        from { opacity: 0; transform: translateY(10px); }
+        to { opacity: 1; transform: translateY(0); }
+      }
+
+      @keyframes drawLine {
+        to { stroke-dashoffset: 0; }
+      }
+    </style>
+  </defs>
+
+  <!-- Rect removed for transparency -->
+  
+  <line x1="0" y1="198" x2="800" y2="198" class="line" />
+  
+  <text x="50%" y="45%" class="text">ELECTROCODE</text>
+  <text x="50%" y="70%" class="subtext">SISTEMA INTEGRAL DE GESTIÓN BIOMÉTRICA</text>
+</svg>
