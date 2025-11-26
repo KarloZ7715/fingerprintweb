@@ -74,12 +74,12 @@
       <tbody>
         <tr>
           <td><b>Backend Core</b></td>
-          <td><code>Laravel 10</code></td>
+          <td><code>Laravel 12</code></td>
           <td>Framework PHP robusto y seguro (PHP 8.2+)</td>
         </tr>
         <tr>
           <td><b>Admin Interface</b></td>
-          <td><code>FilamentPHP v3</code></td>
+          <td><code>FilamentPHP v4</code></td>
           <td>Panel administrativo TALL stack de última generación</td>
         </tr>
         <tr>
